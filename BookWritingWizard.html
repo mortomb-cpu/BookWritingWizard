@@ -807,39 +807,52 @@ const BRAINSTORM_QUESTIONS = [
     subtitle: "",
     type: 'ai-deduced', // Special type — AI guesses subject from title
     options: null,
-    placeholder: "e.g. The history and craft of premium cigars, from seed to smoke..."
+    placeholder: "Describe what your book is really about..."
   },
   {
     id: 'experience',
-    question: "Tell me about your connection to this subject",
-    subtitle: "What's your background? Why are you the right person to write this book?",
-    options: null,
-    placeholder: "e.g. I've been collecting and tasting whisky for 15 years, visited over 40 distilleries across Scotland and Japan..."
+    question: "How do you know this subject?",
+    subtitle: "This helps us understand why you're the right person to write this book.",
+    options: [
+      { icon: '🏆', label: 'It\'s my profession', desc: 'I work in this field — it\'s what I do for a living' },
+      { icon: '❤️', label: 'Lifelong passion & hobby', desc: 'I\'ve been deeply into this for years on my own time' },
+      { icon: '🎓', label: 'Academic or research background', desc: 'I\'ve studied this formally or done extensive research' },
+      { icon: '🌍', label: 'Personal life experience', desc: 'I\'ve lived it — travel, culture, hands-on immersion' }
+    ]
   },
   {
-    id: 'passion',
-    question: "What excites you most about this topic?",
-    subtitle: "What's the thing that lights you up when you talk about it? The part you could talk about for hours?",
-    options: null,
-    placeholder: "e.g. The way terroir and climate shape the flavor of a single malt — it's like tasting geography..."
+    id: 'depth',
+    question: "How deep is your knowledge?",
+    subtitle: "Be honest — this helps us match the book to your strengths.",
+    options: [
+      { icon: '🔬', label: 'World-class expert', desc: 'People come to me for advice — I know the deep details' },
+      { icon: '📚', label: 'Very knowledgeable', desc: 'I know more than most people and have years of experience' },
+      { icon: '🌱', label: 'Enthusiastic learner', desc: 'I know a lot but I\'m still discovering new things' },
+      { icon: '🔄', label: 'Mixed — deep in some areas, learning others', desc: 'Expert in parts, curious about the rest' }
+    ]
   },
   {
-    id: 'reader_wish',
-    question: "Imagine someone just finished your book. How do you want them to feel?",
-    subtitle: "Don't worry about structure or chapters — just tell me the impact you want to have.",
-    options: null,
-    placeholder: "e.g. I want them to walk into a bar and confidently order a whisky they'll love, and understand why they love it..."
+    id: 'reader_goal',
+    question: "When someone finishes your book, what should they be able to do?",
+    subtitle: "Pick the outcome that matters most to you.",
+    options: [
+      { icon: '🧠', label: 'Truly understand the subject', desc: 'They\'ll have deep knowledge and see the world differently' },
+      { icon: '🛠️', label: 'Do something practical', desc: 'They\'ll be able to take action — buy, make, choose, or create' },
+      { icon: '💬', label: 'Talk about it confidently', desc: 'They\'ll hold their own in any conversation on this topic' },
+      { icon: '🔥', label: 'Fall in love with it like I did', desc: 'They\'ll catch the same passion and want to explore more' }
+    ]
   },
   {
     id: 'stories',
-    question: "Do you have personal stories or experiences you'd like to include?",
-    subtitle: "Great books mix knowledge with real stories. Any memorable moments, travels, or people related to your subject?",
+    question: "What kind of personal stories can you bring to this book?",
+    subtitle: "The best non-fiction books mix knowledge with real stories. Pick all that apply.",
     options: [
-      { icon: '🗺️', label: 'Yes — travel stories & adventures', desc: "I've been to amazing places related to this topic" },
-      { icon: '👥', label: 'Yes — people I\'ve met along the way', desc: "Experts, characters, mentors who shaped my knowledge" },
-      { icon: '💡', label: 'Yes — personal discoveries & turning points', desc: "Key moments that changed how I see the subject" },
-      { icon: '📝', label: 'Not sure yet, but I\'m open to it', desc: "Help me figure out what stories would work" }
-    ]
+      { icon: '🗺️', label: 'Travel & places I\'ve been', desc: 'Distilleries, farms, factories, regions I\'ve visited' },
+      { icon: '👥', label: 'Fascinating people I\'ve met', desc: 'Experts, artisans, characters who shaped my knowledge' },
+      { icon: '💡', label: 'Moments that changed my perspective', desc: 'Turning points, surprising discoveries, "aha" moments' },
+      { icon: '📝', label: 'Not sure yet — help me find them', desc: 'I know I have stories, I just need help pulling them out' }
+    ],
+    multi: true
   }
 ];
 
