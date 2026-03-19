@@ -810,66 +810,36 @@ const BRAINSTORM_QUESTIONS = [
     placeholder: "e.g. The history and craft of premium cigars, from seed to smoke..."
   },
   {
-    id: 'audience',
-    question: "Who will read this book?",
-    subtitle: "Pick the audience that best fits, or describe your own.",
-    options: [
-      { icon: '🌱', label: 'Complete Beginners', desc: 'People new to the topic who want a friendly introduction' },
-      { icon: '🔥', label: 'Enthusiasts', desc: 'Hobbyists who already know the basics and want to go deeper' },
-      { icon: '🎯', label: 'Both Beginners & Enthusiasts', desc: 'Accessible to newcomers but rich enough for fans' },
-      { icon: '🏆', label: 'Professionals & Experts', desc: 'Industry insiders, advanced practitioners, or academics' }
-    ]
-  },
-  {
-    id: 'angle',
-    question: "What makes YOUR book unique?",
-    subtitle: "What perspective or expertise do you bring that no one else has?",
-    options: [
-      { icon: '🗺️', label: 'Personal Journey & Stories', desc: "I'll share my own experiences, travels, and discoveries" },
-      { icon: '📚', label: 'Expert Knowledge & Research', desc: "I have deep expertise and want to be the definitive guide" },
-      { icon: '🏛️', label: 'Historical Deep-Dive', desc: 'I want to explore the rich history and origins of the subject' },
-      { icon: '🌍', label: 'Cultural Exploration', desc: 'I want to explore how different cultures relate to this topic' }
-    ]
-  },
-  {
-    id: 'tone',
-    question: "What tone should the book have?",
-    subtitle: "How should it feel when someone reads it?",
-    options: [
-      { icon: '☕', label: 'Casual & Conversational', desc: 'Like chatting with a knowledgeable friend over coffee' },
-      { icon: '🎓', label: 'Educational & Informative', desc: 'Clear, structured, and packed with useful information' },
-      { icon: '📖', label: 'Storytelling & Narrative', desc: 'Rich prose with stories, anecdotes, and vivid descriptions' },
-      { icon: '🔬', label: 'Formal & Authoritative', desc: 'Serious, professional, reference-quality writing' }
-    ]
-  },
-  {
-    id: 'scope',
-    question: "How big should this book be?",
-    subtitle: "This helps us plan the right number of chapters and depth.",
-    options: [
-      { icon: '📘', label: 'Quick Focused Guide', desc: '30,000–50,000 words · 8–12 chapters · Great for a first book' },
-      { icon: '📗', label: 'Standard Book', desc: '50,000–80,000 words · 12–18 chapters · The sweet spot for most topics' },
-      { icon: '📕', label: 'Comprehensive Reference', desc: '80,000–120,000 words · 18–25 chapters · The definitive guide' }
-    ]
-  },
-  {
-    id: 'takeaway',
-    question: "What should readers take away from your book?",
-    subtitle: "When someone finishes reading, what do you want them to feel or know?",
+    id: 'experience',
+    question: "Tell me about your connection to this subject",
+    subtitle: "What's your background? Why are you the right person to write this book?",
     options: null,
-    placeholder: "e.g. I want readers to feel confident choosing and enjoying cigars, and appreciate the craftsmanship behind them..."
+    placeholder: "e.g. I've been collecting and tasting whisky for 15 years, visited over 40 distilleries across Scotland and Japan..."
   },
   {
-    id: 'extras',
-    question: "Anything else you'd like to include?",
-    subtitle: "Think about special sections, features, or topics that matter to you.",
+    id: 'passion',
+    question: "What excites you most about this topic?",
+    subtitle: "What's the thing that lights you up when you talk about it? The part you could talk about for hours?",
+    options: null,
+    placeholder: "e.g. The way terroir and climate shape the flavor of a single malt — it's like tasting geography..."
+  },
+  {
+    id: 'reader_wish',
+    question: "Imagine someone just finished your book. How do you want them to feel?",
+    subtitle: "Don't worry about structure or chapters — just tell me the impact you want to have.",
+    options: null,
+    placeholder: "e.g. I want them to walk into a bar and confidently order a whisky they'll love, and understand why they love it..."
+  },
+  {
+    id: 'stories',
+    question: "Do you have personal stories or experiences you'd like to include?",
+    subtitle: "Great books mix knowledge with real stories. Any memorable moments, travels, or people related to your subject?",
     options: [
-      { icon: '📸', label: 'Photos & Illustrations', desc: 'Visual content like photos, diagrams, or illustrations' },
-      { icon: '📋', label: 'Guides & Checklists', desc: 'Practical resources like buying guides, checklists, or ratings' },
-      { icon: '💬', label: 'Interviews & Quotes', desc: 'Conversations with experts, makers, or notable figures' },
-      { icon: '🗂️', label: 'Glossary & Reference', desc: 'A glossary of terms, bibliography, or reference appendix' }
-    ],
-    multi: true
+      { icon: '🗺️', label: 'Yes — travel stories & adventures', desc: "I've been to amazing places related to this topic" },
+      { icon: '👥', label: 'Yes — people I\'ve met along the way', desc: "Experts, characters, mentors who shaped my knowledge" },
+      { icon: '💡', label: 'Yes — personal discoveries & turning points', desc: "Key moments that changed how I see the subject" },
+      { icon: '📝', label: 'Not sure yet, but I\'m open to it', desc: "Help me figure out what stories would work" }
+    ]
   }
 ];
 
@@ -1288,22 +1258,25 @@ async function generateBrainstormConcept(p) {
     return `${qDef ? qDef.question : key}: ${Array.isArray(val) ? val.join(', ') : val}`;
   }).join('\n');
 
-  const system = `You are a book-writing consultant. Based on the author's brainstorming answers below, create a comprehensive Book Concept Document.
+  const system = `You are an experienced book editor and publishing consultant. The author is a first-time writer who is an expert in their SUBJECT but not in book writing. YOUR job is to be the book-craft expert — you decide the structure, tone, scope, and all publishing details based on what the author has shared about themselves and their passion.
 
-Book project name: "${p.name}"
+Book working title: "${p.name}"
 
-Author's brainstorming answers:
+What the author shared:
 ${answersText}
 
-Create a well-organized Book Concept Document that synthesizes all the answers into a cohesive vision for the book. Include sections for:
-- Book Title (suggest a refined title based on the working title and subject)
-- Core Subject & Premise
-- Target Audience
-- Author's Unique Angle
-- Tone & Style
-- Scope & Scale
-- Key Takeaways for Readers
-- Special Features (photos, guides, glossary, etc. if mentioned)
+Create a comprehensive Book Concept Document. YOU as the expert must decide and recommend:
+- **Book Title**: Refine the working title into something compelling and marketable
+- **Core Subject & Premise**: Synthesize what the author told you into a clear book premise
+- **Target Audience**: Based on the author's knowledge level and passion, determine who this book is best suited for
+- **Author's Unique Angle**: What makes THIS author the right person to write this book
+- **Recommended Tone & Style**: Based on the author's personality and subject, recommend the best writing voice (explain WHY you chose it)
+- **Recommended Scope**: Decide the ideal book size — number of chapters, approximate word count, and explain your reasoning (e.g. "For a first book on this subject, I recommend 12-15 chapters at roughly 60,000 words because...")
+- **Key Takeaways for Readers**: What readers will gain from this book
+- **Special Features**: Recommend what extras would strengthen this book (glossary, photos, guides, interviews, etc.) and explain why
+- **Content Pillars**: The 3-5 major themes or pillars the book should be built around
+
+Be warm, encouraging, and confident in your recommendations. The author is trusting you to guide them — make strong, clear recommendations rather than offering choices. Explain your reasoning briefly so the author understands WHY you're making each recommendation.
 
 Be warm, encouraging, and professional. Make the author feel excited about their book.
 
