@@ -137,7 +137,7 @@ textarea { resize:vertical; min-height:100px; line-height:1.7; }
 /* Document confirm */
 .doc-confirm { background:var(--card); border:2px solid var(--gold-dark); border-radius:var(--radius); padding:24px; margin:16px 24px; }
 .doc-confirm h3 { color:var(--gold); margin-bottom:16px; }
-.doc-content { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:20px; max-height:400px; overflow-y:auto; line-height:1.8; margin-bottom:16px; }
+.doc-content { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:20px; max-height:60vh; overflow-y:auto; line-height:1.8; margin-bottom:16px; }
 .doc-actions { display:flex; gap:12px; justify-content:flex-end; }
 
 /* Writing editor */
@@ -1271,32 +1271,39 @@ async function generateBrainstormConcept(p) {
     return `${qDef ? qDef.question : key}: ${Array.isArray(val) ? val.join(', ') : val}`;
   }).join('\n');
 
-  const system = `You are an experienced book editor and publishing consultant. The author is a first-time writer who is an expert in their SUBJECT but not in book writing. YOUR job is to be the book-craft expert — you decide the structure, tone, scope, and all publishing details based on what the author has shared about themselves and their passion.
+  const system = `You are an experienced book editor. The author is a first-time writer, expert in their subject but not in book writing. Be concise and confident.
 
 Book working title: "${p.name}"
 
-What the author shared:
+Author's answers:
 ${answersText}
 
-Create a comprehensive Book Concept Document. YOU as the expert must decide and recommend:
-- **Book Title**: Refine the working title into something compelling and marketable
-- **Core Subject & Premise**: Synthesize what the author told you into a clear book premise
-- **Target Audience**: Based on the author's knowledge level and passion, determine who this book is best suited for
-- **Author's Unique Angle**: What makes THIS author the right person to write this book
-- **Recommended Tone & Style**: Based on the author's personality and subject, recommend the best writing voice (explain WHY you chose it)
-- **Recommended Scope**: Decide the ideal book size — number of chapters, approximate word count, and explain your reasoning (e.g. "For a first book on this subject, I recommend 12-15 chapters at roughly 60,000 words because...")
-- **Key Takeaways for Readers**: What readers will gain from this book
-- **Special Features**: Recommend what extras would strengthen this book (glossary, photos, guides, interviews, etc.) and explain why
-- **Content Pillars**: The 3-5 major themes or pillars the book should be built around
+Create a SHORT Book Concept Summary using EXACTLY this format (use the bold headers as shown, keep each section to 1-2 sentences max):
 
-Be warm, encouraging, and confident in your recommendations. The author is trusting you to guide them — make strong, clear recommendations rather than offering choices. Explain your reasoning briefly so the author understands WHY you're making each recommendation.
-
-Be warm, encouraging, and professional. Make the author feel excited about their book.
-
-Wrap the complete document in <DOCUMENT> tags:
 <DOCUMENT>
-[The Book Concept Document]
-</DOCUMENT>`;
+**Suggested Title:** [refined title]
+
+**What This Book Is About:** [1-2 sentences]
+
+**Who It's For:** [1 sentence]
+
+**Your Unique Angle:** [1 sentence about why this author]
+
+**Tone:** [e.g. "Conversational and warm — like a knowledgeable friend sharing over drinks"]
+
+**Scope:** [e.g. "~60,000 words across 14 chapters"]
+
+**Content Pillars:**
+1. [Pillar name] — [one line]
+2. [Pillar name] — [one line]
+3. [Pillar name] — [one line]
+4. [Pillar name] — [one line]
+5. [Pillar name] — [one line]
+
+**Special Features:** [e.g. "Tasting guides, regional maps, glossary of terms"]
+</DOCUMENT>
+
+CRITICAL: Keep the ENTIRE document under 250 words. No fluff, no "notes from your editor", no encouragement paragraphs. Just the facts in the format above.`;
 
   try {
     let fullText = '';
