@@ -1,0 +1,2798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Book Wizard</title>
+<style>
+:root {
+  --bg: #0f0f1a;
+  --surface: #1a1a2e;
+  --surface2: #252542;
+  --card: #16213e;
+  --gold: #d4a853;
+  --gold-light: #e8c776;
+  --gold-dark: #b8922f;
+  --text: #e8e0d4;
+  --text2: #a0978c;
+  --text3: #6b6360;
+  --green: #4ade80;
+  --red: #f87171;
+  --blue: #60a5fa;
+  --border: #2a2a4a;
+  --radius: 10px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.4);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { height:100%; overflow:hidden; }
+body { background:var(--bg); color:var(--text); font-family:Georgia,'Times New Roman',serif; }
+::-webkit-scrollbar { width:8px; }
+::-webkit-scrollbar-track { background:var(--bg); }
+::-webkit-scrollbar-thumb { background:var(--border); border-radius:4px; }
+::-webkit-scrollbar-thumb:hover { background:var(--text3); }
+#app { height:100vh; display:flex; flex-direction:column; }
+.ui { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
+
+/* Buttons */
+.btn { display:inline-flex; align-items:center; gap:8px; padding:12px 28px; border:none; border-radius:var(--radius); font-size:15px; font-family:inherit; cursor:pointer; transition:all .2s; font-weight:600; }
+.btn-gold { background:var(--gold); color:#0f0f1a; }
+.btn-gold:hover { background:var(--gold-light); transform:translateY(-1px); box-shadow:0 4px 16px rgba(212,168,83,0.3); }
+.btn-outline { background:transparent; color:var(--gold); border:2px solid var(--gold); }
+.btn-outline:hover { background:rgba(212,168,83,0.1); }
+.btn-ghost { background:transparent; color:var(--text2); border:1px solid var(--border); }
+.btn-ghost:hover { background:var(--surface2); color:var(--text); }
+.btn-danger { background:transparent; color:var(--red); border:1px solid var(--red); }
+.btn-danger:hover { background:rgba(248,113,113,0.1); }
+.btn-sm { padding:8px 16px; font-size:13px; }
+.btn-lg { padding:16px 36px; font-size:17px; }
+.btn:disabled { opacity:0.4; cursor:not-allowed; transform:none !important; }
+
+/* Inputs */
+input[type="text"], input[type="password"], textarea {
+  background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:var(--radius);
+  padding:12px 16px; font-size:15px; font-family:inherit; width:100%; outline:none; transition:border-color .2s;
+}
+input:focus, textarea:focus { border-color:var(--gold); }
+textarea { resize:vertical; min-height:100px; line-height:1.7; }
+
+/* Cards */
+.card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:24px; }
+.card:hover { border-color:var(--surface2); }
+.card-gold { border-color:var(--gold-dark); }
+.card-gold:hover { border-color:var(--gold); }
+
+/* Header */
+.header { display:flex; align-items:center; justify-content:space-between; padding:12px 24px; background:var(--surface); border-bottom:1px solid var(--border); flex-shrink:0; }
+.header .logo { font-size:20px; color:var(--gold); font-weight:700; letter-spacing:1px; }
+.header .logo span { color:var(--text); font-weight:400; }
+.header-actions { display:flex; align-items:center; gap:12px; }
+
+/* Phase Steps */
+.steps { display:flex; align-items:center; gap:4px; }
+.step { display:flex; align-items:center; gap:8px; padding:8px 16px; border-radius:20px; font-size:13px; color:var(--text3); font-family:-apple-system,sans-serif; transition:all .2s; cursor:pointer; }
+.step.active { background:rgba(212,168,83,0.15); color:var(--gold); }
+.step.done { color:var(--green); }
+.step-num { width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; border:2px solid currentColor; }
+.step.active .step-num { background:var(--gold); color:var(--bg); border-color:var(--gold); }
+.step.done .step-num { background:var(--green); color:var(--bg); border-color:var(--green); }
+.step-arrow { color:var(--text3); font-size:16px; }
+
+/* Layout */
+.main { flex:1; display:flex; overflow:hidden; }
+.sidebar { width:260px; background:var(--surface); border-right:1px solid var(--border); display:flex; flex-direction:column; overflow-y:auto; flex-shrink:0; }
+.sidebar-section { padding:16px; border-bottom:1px solid var(--border); }
+.sidebar-title { font-size:11px; text-transform:uppercase; letter-spacing:2px; color:var(--text3); margin-bottom:12px; font-family:-apple-system,sans-serif; }
+.sidebar-item { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:8px; cursor:pointer; transition:all .15s; color:var(--text2); font-size:14px; font-family:-apple-system,sans-serif; }
+.sidebar-item:hover { background:var(--surface2); color:var(--text); }
+.sidebar-item.active { background:rgba(212,168,83,0.12); color:var(--gold); }
+.sidebar-badge { font-size:11px; padding:2px 8px; border-radius:10px; margin-left:auto; font-family:-apple-system,sans-serif; }
+.badge-green { background:rgba(74,222,128,0.15); color:var(--green); }
+.badge-gold { background:rgba(212,168,83,0.15); color:var(--gold); }
+.badge-gray { background:rgba(107,99,96,0.2); color:var(--text3); }
+.content-area { flex:1; overflow-y:auto; display:flex; flex-direction:column; }
+
+/* Chat */
+.chat-container { flex:1; display:flex; flex-direction:column; max-width:800px; width:100%; margin:0 auto; }
+.chat-messages { flex:1; overflow-y:auto; padding:24px; display:flex; flex-direction:column; gap:16px; }
+.chat-msg { display:flex; gap:12px; max-width:90%; animation:fadeIn .3s; }
+.chat-msg.ai { align-self:flex-start; }
+.chat-msg.user { align-self:flex-end; flex-direction:row-reverse; }
+.chat-avatar { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; font-family:-apple-system,sans-serif; }
+.chat-msg.ai .chat-avatar { background:var(--gold); color:var(--bg); }
+.chat-msg.user .chat-avatar { background:var(--surface2); color:var(--text); }
+.chat-bubble { padding:14px 18px; border-radius:16px; line-height:1.7; font-size:15px; }
+.chat-msg.ai .chat-bubble { background:var(--surface); border:1px solid var(--border); border-top-left-radius:4px; }
+.chat-msg.user .chat-bubble { background:var(--card); border:1px solid var(--border); border-top-right-radius:4px; color:var(--text); }
+.chat-bubble h1,.chat-bubble h2,.chat-bubble h3 { color:var(--gold); margin:12px 0 8px; }
+.chat-bubble h1 { font-size:18px; }
+.chat-bubble h2 { font-size:16px; }
+.chat-bubble h3 { font-size:15px; }
+.chat-bubble ul,.chat-bubble ol { padding-left:20px; margin:8px 0; }
+.chat-bubble li { margin:4px 0; }
+.chat-bubble strong { color:var(--gold-light); }
+.chat-bubble code { background:var(--bg); padding:2px 6px; border-radius:4px; font-size:13px; }
+.chat-bubble p { margin:8px 0; }
+.chat-input-area { padding:16px 24px; border-top:1px solid var(--border); background:var(--surface); }
+.chat-input-wrap { display:flex; gap:12px; align-items:flex-end; }
+.chat-input-wrap textarea { min-height:48px; max-height:150px; resize:none; }
+
+/* Center screens */
+.center-screen { flex:1; display:flex; align-items:center; justify-content:center; padding:40px; overflow-y:auto; }
+.center-box { max-width:560px; width:100%; text-align:center; }
+.center-box h1 { font-size:36px; color:var(--gold); margin-bottom:8px; }
+.center-box h2 { font-size:24px; color:var(--gold); margin-bottom:8px; }
+.center-box p { color:var(--text2); font-size:16px; line-height:1.7; margin-bottom:24px; }
+.center-box .subtitle { font-size:18px; color:var(--text2); margin-bottom:32px; }
+
+/* Project list */
+.project-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:16px; margin-top:24px; text-align:left; }
+.project-card { cursor:pointer; transition:all .2s; position:relative; }
+.project-card:hover { transform:translateY(-2px); box-shadow:var(--shadow); border-color:var(--gold-dark); }
+.project-card h3 { color:var(--text); font-size:16px; margin-bottom:8px; }
+.project-card .meta { font-size:12px; color:var(--text3); font-family:-apple-system,sans-serif; }
+.project-delete { position:absolute; top:12px; right:12px; background:none; border:none; color:var(--text3); cursor:pointer; font-size:16px; opacity:0; transition:opacity .2s; }
+.project-card:hover .project-delete { opacity:1; }
+.project-delete:hover { color:var(--red); }
+
+/* Document confirm */
+.doc-confirm { background:var(--card); border:2px solid var(--gold-dark); border-radius:var(--radius); padding:24px; margin:16px 24px; }
+.doc-confirm h3 { color:var(--gold); margin-bottom:16px; }
+.doc-content { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:20px; max-height:400px; overflow-y:auto; line-height:1.8; margin-bottom:16px; }
+.doc-actions { display:flex; gap:12px; justify-content:flex-end; }
+
+/* Writing editor */
+.editor-container { display:flex; flex:1; overflow:hidden; }
+.editor-main { flex:1; display:flex; flex-direction:column; padding:24px; overflow-y:auto; }
+.editor-panel { width:340px; background:var(--surface); border-left:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; }
+.editor-textarea { flex:1; min-height:400px; font-size:16px; line-height:2; padding:20px; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius); color:var(--text); resize:none; }
+.editor-toolbar { display:flex; align-items:center; justify-content:space-between; padding:12px 0; font-family:-apple-system,sans-serif; }
+.word-count { font-size:13px; color:var(--text3); font-family:-apple-system,sans-serif; }
+.word-target { color:var(--gold); }
+
+/* Reading view */
+.reading-view { max-width:700px; margin:0 auto; padding:40px 24px; line-height:2; font-size:17px; }
+.reading-view h1 { font-size:28px; color:var(--gold); margin-bottom:24px; text-align:center; }
+
+/* Notebook panel */
+.notebook { display:flex; flex-direction:column; height:100%; }
+.notebook-header { padding:16px; border-bottom:1px solid var(--border); }
+.notebook-header h3 { font-size:14px; color:var(--gold); font-family:-apple-system,sans-serif; }
+.notebook-notes { flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:8px; }
+.notebook-note { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:10px; font-size:13px; position:relative; }
+.notebook-note .delete-note { position:absolute; top:4px; right:8px; background:none; border:none; color:var(--text3); cursor:pointer; font-size:12px; }
+.notebook-input { padding:12px; border-top:1px solid var(--border); }
+.notebook-input textarea { min-height:60px; font-size:13px; }
+
+/* Diff/Review */
+.review-item { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); margin-bottom:16px; overflow:hidden; }
+.review-reason { padding:12px 16px; background:var(--card); border-bottom:1px solid var(--border); font-size:13px; color:var(--text2); font-family:-apple-system,sans-serif; }
+.review-diff { display:grid; grid-template-columns:1fr 1fr; }
+.review-old, .review-new { padding:16px; font-size:14px; line-height:1.7; }
+.review-old { background:rgba(248,113,113,0.05); border-right:1px solid var(--border); }
+.review-new { background:rgba(74,222,128,0.05); }
+.review-label { font-size:11px; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; font-family:-apple-system,sans-serif; }
+.review-old .review-label { color:var(--red); }
+.review-new .review-label { color:var(--green); }
+.review-actions { padding:12px 16px; border-top:1px solid var(--border); display:flex; gap:8px; justify-content:flex-end; }
+
+/* Progress bar */
+.progress-bar { height:6px; background:var(--bg); border-radius:3px; overflow:hidden; }
+.progress-fill { height:100%; background:var(--gold); border-radius:3px; transition:width .5s; }
+
+/* Dashboard stats */
+.stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px; margin-bottom:24px; }
+.stat-card { text-align:center; }
+.stat-card .stat-num { font-size:32px; color:var(--gold); font-weight:700; }
+.stat-card .stat-label { font-size:12px; color:var(--text3); text-transform:uppercase; letter-spacing:1px; font-family:-apple-system,sans-serif; }
+
+/* Glossary */
+.glossary-item { display:flex; align-items:flex-start; gap:16px; padding:16px; border-bottom:1px solid var(--border); }
+.glossary-term { font-weight:700; color:var(--gold); min-width:140px; font-size:16px; }
+.glossary-def { color:var(--text2); line-height:1.6; flex:1; }
+.glossary-actions { display:flex; gap:8px; flex-shrink:0; }
+
+/* Images */
+.image-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:16px; }
+.image-card { position:relative; border-radius:var(--radius); overflow:hidden; border:1px solid var(--border); cursor:pointer; aspect-ratio:4/3; }
+.image-card img { width:100%; height:100%; object-fit:cover; }
+.image-card .caption { position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.7); padding:8px; font-size:12px; color:var(--text); }
+.image-upload-zone { border:2px dashed var(--border); border-radius:var(--radius); padding:40px; text-align:center; cursor:pointer; transition:all .2s; }
+.image-upload-zone:hover { border-color:var(--gold); background:rgba(212,168,83,0.05); }
+
+/* Modal */
+#modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:1000; align-items:center; justify-content:center; }
+#modal-overlay.show { display:flex; }
+.modal { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:32px; max-width:500px; width:90%; box-shadow:var(--shadow); }
+.modal h2 { color:var(--gold); margin-bottom:12px; font-size:20px; }
+.modal p { color:var(--text2); margin-bottom:20px; line-height:1.6; }
+.modal-actions { display:flex; gap:12px; justify-content:flex-end; }
+
+/* Loading */
+.typing-indicator { display:flex; gap:4px; padding:8px 0; }
+.typing-dot { width:8px; height:8px; background:var(--gold); border-radius:50%; animation:bounce 1.4s infinite; }
+.typing-dot:nth-child(2) { animation-delay:.2s; }
+.typing-dot:nth-child(3) { animation-delay:.4s; }
+@keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-8px)} }
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+/* Responsive */
+@media(max-width:768px) {
+  .sidebar { width:200px; }
+  .editor-panel { width:280px; }
+  .review-diff { grid-template-columns:1fr; }
+  .center-box h1 { font-size:28px; }
+}
+@media(max-width:600px) {
+  .sidebar { display:none; }
+  .editor-panel { width:100%; }
+  .editor-container { flex-direction:column; }
+}
+
+/* Drag and drop */
+.dragging { opacity:0.5; }
+.drag-over { border-color:var(--gold) !important; background:rgba(212,168,83,0.05) !important; }
+
+/* Tabs */
+.tabs { display:flex; gap:4px; border-bottom:1px solid var(--border); padding:0 16px; }
+.tab { padding:10px 16px; font-size:13px; color:var(--text3); cursor:pointer; border-bottom:2px solid transparent; font-family:-apple-system,sans-serif; transition:all .2s; }
+.tab:hover { color:var(--text); }
+.tab.active { color:var(--gold); border-bottom-color:var(--gold); }
+
+/* Tooltip */
+.tooltip { position:relative; }
+.tooltip::after { content:attr(data-tip); position:absolute; bottom:calc(100% + 8px); left:50%; transform:translateX(-50%); background:var(--card); color:var(--text); padding:8px 12px; border-radius:6px; font-size:12px; white-space:nowrap; opacity:0; pointer-events:none; transition:opacity .2s; border:1px solid var(--border); font-family:-apple-system,sans-serif; }
+.tooltip:hover::after { opacity:1; }
+
+/* Read-back mode */
+.readback-overlay { position:fixed; inset:0; background:var(--bg); z-index:500; overflow-y:auto; }
+.readback-content { max-width:650px; margin:0 auto; padding:60px 24px; line-height:2.2; font-size:18px; }
+.readback-close { position:fixed; top:20px; right:24px; z-index:501; }
+
+/* Interactive brainstorm */
+.bs-container { flex:1; overflow-y:auto; display:flex; flex-direction:column; max-width:700px; width:100%; margin:0 auto; padding:24px; }
+.bs-step { animation:fadeIn .4s; margin-bottom:24px; }
+.bs-question { font-size:20px; color:var(--gold); margin-bottom:6px; line-height:1.5; }
+.bs-subtitle { font-size:14px; color:var(--text3); margin-bottom:16px; font-family:-apple-system,sans-serif; }
+.bs-options { display:flex; flex-direction:column; gap:10px; margin-bottom:16px; }
+.bs-option { display:flex; align-items:center; gap:14px; padding:16px 20px; background:var(--surface); border:2px solid var(--border); border-radius:var(--radius); cursor:pointer; transition:all .2s; font-size:15px; }
+.bs-option:hover { border-color:var(--gold-dark); background:var(--surface2); transform:translateX(4px); }
+.bs-option.selected { border-color:var(--gold); background:rgba(212,168,83,0.1); }
+.bs-option-icon { width:36px; height:36px; border-radius:50%; background:var(--card); display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
+.bs-option.selected .bs-option-icon { background:var(--gold); }
+.bs-option-text { flex:1; }
+.bs-option-label { font-weight:600; color:var(--text); }
+.bs-option-desc { font-size:13px; color:var(--text3); margin-top:2px; font-family:-apple-system,sans-serif; }
+.bs-or { text-align:center; color:var(--text3); font-size:13px; padding:8px 0; font-family:-apple-system,sans-serif; }
+.bs-custom { display:flex; gap:10px; }
+.bs-custom textarea { flex:1; min-height:44px; font-size:14px; }
+.bs-answer { display:flex; align-items:center; gap:10px; padding:12px 16px; background:var(--card); border:1px solid var(--border); border-radius:var(--radius); margin-bottom:8px; }
+.bs-answer-label { font-size:12px; color:var(--text3); text-transform:uppercase; letter-spacing:1px; font-family:-apple-system,sans-serif; min-width:80px; }
+.bs-answer-text { color:var(--gold-light); font-size:15px; }
+.bs-progress { display:flex; gap:6px; margin-bottom:24px; }
+.bs-dot { width:10px; height:10px; border-radius:50%; background:var(--border); transition:all .3s; }
+.bs-dot.done { background:var(--gold); }
+.bs-dot.active { background:var(--gold); box-shadow:0 0 8px rgba(212,168,83,0.5); transform:scale(1.3); }
+.bs-generating { text-align:center; padding:40px; }
+.bs-generating p { color:var(--text2); margin-top:12px; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="modal-overlay"></div>
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+const CONFIG = {
+  apiUrl: 'https://api.anthropic.com/v1/messages',
+  model: 'claude-opus-4-6',
+  apiVersion: '2023-06-01',
+  maxTokensChat: 4096,
+  maxTokensDoc: 8192,
+  maxTokensChapter: 16384,
+  storageKey: 'bookwizard_data',
+  maxImageWidth: 1000,
+  imageQuality: 0.7
+};
+
+// ============================================================
+// STATE
+// ============================================================
+let state = loadState();
+let streamAbort = null;
+
+function defaultState() {
+  return { apiKey: '', projects: [], currentProjectId: null, onboarded: false };
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(CONFIG.storageKey);
+    return raw ? { ...defaultState(), ...JSON.parse(raw) } : defaultState();
+  } catch { return defaultState(); }
+}
+
+function saveState() {
+  try { localStorage.setItem(CONFIG.storageKey, JSON.stringify(state)); } catch(e) { console.error('Save failed:', e); }
+}
+
+function getProject() {
+  return state.projects.find(p => p.id === state.currentProjectId) || null;
+}
+
+function saveProject() { saveState(); }
+
+function newProject(name) {
+  const p = {
+    id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36)+Math.random().toString(36).slice(2),
+    name: name,
+    createdAt: new Date().toISOString(),
+    currentPhase: 1,
+    brainstorm: { messages: [], document: '' },
+    research: { messages: [], document: '' },
+    plan: { messages: [], document: '', chapters: [] },
+    chapters: [],
+    continuityLedger: '',
+    voiceProfile: '',
+    glossary: [],
+    settings: { totalWordTarget: 0 }
+  };
+  state.projects.push(p);
+  state.currentProjectId = p.id;
+  saveState();
+  return p;
+}
+
+// ============================================================
+// API LAYER
+// ============================================================
+async function callClaude(messages, systemPrompt, maxTokens, onChunk) {
+  if (!state.apiKey) throw new Error('No API key set');
+  streamAbort = new AbortController();
+  const isStreaming = !!onChunk;
+
+  const body = {
+    model: CONFIG.model,
+    max_tokens: maxTokens || CONFIG.maxTokensChat,
+    system: systemPrompt || '',
+    messages: messages,
+    stream: isStreaming
+  };
+
+  const resp = await fetch(CONFIG.apiUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': state.apiKey,
+      'anthropic-version': CONFIG.apiVersion,
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify(body),
+    signal: streamAbort.signal
+  });
+
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err.error?.message || `API error ${resp.status}`);
+  }
+
+  if (!isStreaming) {
+    const data = await resp.json();
+    return data.content?.[0]?.text || '';
+  }
+
+  // Streaming
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = '', fullText = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    const lines = buf.split('\n');
+    buf = lines.pop();
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const raw = line.slice(6).trim();
+      if (raw === '[DONE]') continue;
+      try {
+        const d = JSON.parse(raw);
+        if (d.type === 'content_block_delta' && d.delta?.text) {
+          fullText += d.delta.text;
+          onChunk(d.delta.text, fullText);
+        }
+        if (d.type === 'error') throw new Error(d.error?.message || 'Stream error');
+      } catch(e) {
+        if (e.message === 'Stream error') throw e;
+      }
+    }
+  }
+  return fullText;
+}
+
+function abortStream() { if (streamAbort) streamAbort.abort(); streamAbort = null; }
+
+// ============================================================
+// MARKDOWN PARSER
+// ============================================================
+function md(text) {
+  if (!text) return '';
+  let html = text
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+    .replace(/^[\-\*] (.+)$/gm, '<li>$1</li>')
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/\n/g, '<br>');
+  html = html.replace(/(<li>[\s\S]*?<\/li>)/g, m => '<ul>' + m + '</ul>');
+  html = html.replace(/<\/ul><br><ul>/g, '');
+  return '<p>' + html + '</p>';
+}
+
+// ============================================================
+// UI HELPERS
+// ============================================================
+function $(sel) { return document.querySelector(sel); }
+function $$(sel) { return document.querySelectorAll(sel); }
+function el(tag, cls, html) { const e = document.createElement(tag); if(cls) e.className = cls; if(html) e.innerHTML = html; return e; }
+
+function showModal(title, message, actions) {
+  const overlay = document.getElementById('modal-overlay');
+  overlay.innerHTML = `<div class="modal">
+    <h2>${title}</h2>
+    <p>${message}</p>
+    <div class="modal-actions" id="modal-btns"></div>
+  </div>`;
+  const btns = document.getElementById('modal-btns');
+  actions.forEach(a => {
+    const b = el('button', `btn ${a.cls||'btn-ghost'}`, a.label);
+    b.onclick = () => { overlay.classList.remove('show'); if(a.fn) a.fn(); };
+    btns.appendChild(b);
+  });
+  overlay.classList.add('show');
+}
+
+function hideModal() { document.getElementById('modal-overlay').classList.remove('show'); }
+
+function wordCount(text) { return text ? text.trim().split(/\s+/).filter(w=>w).length : 0; }
+
+function formatDate(iso) {
+  try { return new Date(iso).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }); }
+  catch { return ''; }
+}
+
+function compressImage(file) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const ratio = Math.min(CONFIG.maxImageWidth / img.width, 1);
+      canvas.width = img.width * ratio;
+      canvas.height = img.height * ratio;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL('image/jpeg', CONFIG.imageQuality));
+    };
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+function autoGrow(textarea) {
+  textarea.style.height = 'auto';
+  textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px';
+}
+
+// ============================================================
+// ROUTER
+// ============================================================
+let currentView = 'home';
+let viewParams = {};
+
+function navigate(view, params = {}) {
+  abortStream();
+  currentView = view;
+  viewParams = params;
+  render();
+}
+
+function render() {
+  const app = document.getElementById('app');
+  switch(currentView) {
+    case 'home': renderHome(app); break;
+    case 'setup': renderSetup(app); break;
+    case 'phase': renderPhase(app); break;
+    case 'project': renderProject(app); break;
+    case 'chapter': renderChapter(app); break;
+    case 'review': renderReview(app); break;
+    case 'glossary': renderGlossary(app); break;
+    case 'ledger': renderLedger(app); break;
+    case 'images': renderImages(app); break;
+    case 'readback': renderReadback(app); break;
+    case 'export': renderExport(app); break;
+    case 'voiceprofile': renderVoiceProfile(app); break;
+    default: renderHome(app);
+  }
+}
+
+// ============================================================
+// VIEW: HOME
+// ============================================================
+function renderHome(app) {
+  const projects = state.projects;
+  app.innerHTML = `
+    <div class="header">
+      <div class="logo">BOOK <span>WIZARD</span></div>
+      <div class="header-actions ui">
+        ${state.apiKey ? `<button class="btn btn-ghost btn-sm" onclick="navigate('setup')">API Settings</button>` : ''}
+      </div>
+    </div>
+    <div class="center-screen">
+      <div class="center-box">
+        <h1>Book Wizard</h1>
+        <p class="subtitle">Your AI-powered companion for writing a book from idea to finished manuscript.</p>
+        ${!state.apiKey ? `
+          <p style="color:var(--gold);font-size:14px;margin-bottom:24px;">To get started, you'll need a Claude API key from Anthropic.</p>
+          <button class="btn btn-gold btn-lg" onclick="navigate('setup')">Get Started</button>
+        ` : `
+          <div style="margin-bottom:32px;">
+            <button class="btn btn-gold btn-lg" onclick="promptNewProject()">Start a New Book</button>
+          </div>
+          ${projects.length ? `
+            <h2 style="font-size:18px;color:var(--text2);margin-bottom:16px;">Your Books</h2>
+            <div class="project-grid">
+              ${projects.map(p => `
+                <div class="card project-card" onclick="openProject('${p.id}')">
+                  <button class="project-delete" onclick="event.stopPropagation();deleteProject('${p.id}')" title="Delete">&times;</button>
+                  <h3>${esc(p.name)}</h3>
+                  <div class="meta">Created ${formatDate(p.createdAt)}</div>
+                  <div class="meta" style="margin-top:4px;">Phase ${p.currentPhase}/4 &middot; ${p.chapters.length} chapters</div>
+                  <div class="progress-bar" style="margin-top:12px;">
+                    <div class="progress-fill" style="width:${getProjectProgress(p)}%"></div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+        `}
+      </div>
+    </div>
+  `;
+}
+
+function getProjectProgress(p) {
+  if (p.currentPhase < 4) return (p.currentPhase - 1) * 15;
+  if (!p.chapters.length) return 45;
+  const done = p.chapters.filter(c => c.status === 'final').length;
+  return 45 + (done / p.chapters.length) * 55;
+}
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+function promptNewProject() {
+  const overlay = document.getElementById('modal-overlay');
+  overlay.innerHTML = `<div class="modal">
+    <h2>Start a New Book</h2>
+    <p>Give your book project a working title. You can always change it later.</p>
+    <input type="text" id="new-project-name" placeholder="e.g. The Art of Fine Cigars" style="margin-bottom:20px;">
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="hideModal()">Cancel</button>
+      <button class="btn btn-gold" onclick="createProject()">Begin</button>
+    </div>
+  </div>`;
+  overlay.classList.add('show');
+  setTimeout(() => document.getElementById('new-project-name')?.focus(), 100);
+  document.getElementById('new-project-name').addEventListener('keydown', e => { if(e.key==='Enter') createProject(); });
+}
+
+function createProject() {
+  const name = document.getElementById('new-project-name')?.value?.trim();
+  if (!name) return;
+  hideModal();
+  subjectDeduction = { loading: false, result: null, error: null };
+  newProject(name);
+  navigate('phase', { phase: 1 });
+}
+
+function openProject(id) {
+  state.currentProjectId = id;
+  saveState();
+  subjectDeduction = { loading: false, result: null, error: null };
+  const p = getProject();
+  if (!p) return;
+  if (p.currentPhase <= 3) navigate('phase', { phase: p.currentPhase });
+  else navigate('project');
+}
+
+function deleteProject(id) {
+  showModal('Delete Book?', 'This will permanently remove this book project and all its content.', [
+    { label: 'Cancel', cls: 'btn-ghost' },
+    { label: 'Delete', cls: 'btn-danger', fn: () => {
+      state.projects = state.projects.filter(p => p.id !== id);
+      if (state.currentProjectId === id) state.currentProjectId = null;
+      saveState(); navigate('home');
+    }}
+  ]);
+}
+
+// ============================================================
+// VIEW: API SETUP
+// ============================================================
+function renderSetup(app) {
+  app.innerHTML = `
+    <div class="header">
+      <div class="logo">BOOK <span>WIZARD</span></div>
+      <div class="header-actions ui">
+        <button class="btn btn-ghost btn-sm" onclick="navigate('home')">Back</button>
+      </div>
+    </div>
+    <div class="center-screen">
+      <div class="center-box" style="text-align:left;">
+        <h2 style="text-align:center;">API Setup</h2>
+        <p style="text-align:center;">Book Wizard connects to Claude (by Anthropic) to power all the AI features. You need an API key to use it.</p>
+        <div class="card" style="margin-bottom:20px;">
+          <p style="font-size:14px;color:var(--text2);margin-bottom:12px;">
+            <strong style="color:var(--gold);">How to get your API key:</strong><br>
+            1. Go to <strong>console.anthropic.com</strong><br>
+            2. Sign up or log in<br>
+            3. Go to API Keys and create a new one<br>
+            4. Copy and paste it below
+          </p>
+        </div>
+        <label style="font-size:13px;color:var(--text2);display:block;margin-bottom:8px;" class="ui">Your API Key</label>
+        <input type="password" id="api-key-input" value="${state.apiKey||''}" placeholder="sk-ant-..." style="margin-bottom:8px;">
+        <p style="font-size:12px;color:var(--text3);margin-bottom:24px;" class="ui">Your key is stored only on this computer and never sent anywhere except directly to Anthropic.</p>
+        <div style="display:flex;gap:12px;justify-content:center;">
+          <button class="btn btn-gold" onclick="saveApiKey()">Save & Continue</button>
+          <button class="btn btn-ghost btn-sm" onclick="testApiKey()" id="test-btn">Test Connection</button>
+        </div>
+        <div id="api-test-result" style="text-align:center;margin-top:16px;font-size:14px;" class="ui"></div>
+      </div>
+    </div>
+  `;
+}
+
+async function saveApiKey() {
+  const key = document.getElementById('api-key-input')?.value?.trim();
+  if (!key) return;
+  state.apiKey = key;
+  saveState();
+  navigate('home');
+}
+
+async function testApiKey() {
+  const key = document.getElementById('api-key-input')?.value?.trim();
+  if (!key) return;
+  const res = document.getElementById('api-test-result');
+  const btn = document.getElementById('test-btn');
+  btn.disabled = true;
+  res.innerHTML = '<span style="color:var(--text2)">Testing...</span>';
+  try {
+    state.apiKey = key;
+    const result = await callClaude([{role:'user',content:'Say "Connected!" in one word.'}], 'Respond with exactly one word.', 100, null);
+    res.innerHTML = '<span style="color:var(--green)">Connection successful!</span>';
+    saveState();
+  } catch(e) {
+    res.innerHTML = `<span style="color:var(--red)">Failed: ${esc(e.message)}</span>`;
+  }
+  btn.disabled = false;
+}
+
+// ============================================================
+// VIEW: PHASES 1-3 (Chat)
+// ============================================================
+const PHASE_CONFIG = {
+  1: {
+    title: 'Brainstorm',
+    storeKey: 'brainstorm',
+    maxTokens: CONFIG.maxTokensChat,
+    getSystem: (p) => `You are a warm, encouraging book-writing consultant helping an author brainstorm their book idea.
+
+The book project is called: "${p.name}"
+
+Your goal is to help them crystallize their book idea through natural conversation. Ask ONE question at a time. Be conversational and supportive.
+
+Topics to explore (in natural order):
+- What is the book about? What's the core subject?
+- Who is the target reader?
+- What unique angle or expertise does the author bring?
+- What tone and style? (educational, personal memoir, reference guide, etc.)
+- What scope? (comprehensive guide vs. focused topic)
+- What should readers take away from this book?
+
+After you've gathered enough information (usually 5-8 exchanges), synthesize everything into a Book Concept Document. When you produce the final document, wrap it in <DOCUMENT> tags like this:
+
+<DOCUMENT>
+[The complete Book Concept Document with all the information organized into clear sections]
+</DOCUMENT>
+
+Important: Only produce the <DOCUMENT> when you have enough information. Before that, just ask questions and respond naturally.`,
+    getInitial: (p) => `Welcome! I'm excited to help you develop your book idea. Let's explore what you want to write about.\n\nTell me — what's the subject of your book? What are you passionate about sharing with readers?`
+  },
+  2: {
+    title: 'Research & Structure',
+    storeKey: 'research',
+    maxTokens: CONFIG.maxTokensDoc,
+    getSystem: (p) => `You are a book research and structure specialist. You're helping an author plan the structure of their book.
+
+Book Project: "${p.name}"
+
+Here is the finalized Book Concept Document from the brainstorming phase:
+
+--- BOOK CONCEPT ---
+${p.brainstorm.document}
+--- END CONCEPT ---
+
+Your job is to:
+1. Ask a few clarifying questions about scope and preferences (1-3 questions)
+2. Then produce a comprehensive Research & Structure Document
+
+The Research & Structure Document should include:
+- Genre analysis and reader expectations for this type of book
+- Recommended number of chapters (with reasoning)
+- Suggested word count per chapter and total word count
+- Content organization strategy
+- Key topics that must be covered
+- Narrative flow recommendations
+- Best practices for this type of non-fiction book
+
+When you produce the final document, wrap it in <DOCUMENT> tags:
+
+<DOCUMENT>
+[Complete Research & Structure Document]
+</DOCUMENT>
+
+Be thorough and practical. This document will guide the entire book structure.`,
+    getInitial: (p) => `Great work on the concept! Now let's figure out the best structure for your book.\n\nI've reviewed your Book Concept Document. Before I put together a full research and structure plan, I have a couple of questions.\n\nFirst — do you have a rough idea of how long you want the book to be? Are you thinking a shorter focused guide (30,000-50,000 words) or a comprehensive reference (70,000-100,000+ words)?`
+  },
+  3: {
+    title: 'Book Plan',
+    storeKey: 'plan',
+    maxTokens: CONFIG.maxTokensDoc,
+    getSystem: (p) => `You are a book planning specialist creating a detailed chapter-by-chapter plan.
+
+Book Project: "${p.name}"
+
+--- BOOK CONCEPT ---
+${p.brainstorm.document}
+--- END CONCEPT ---
+
+--- RESEARCH & STRUCTURE ---
+${p.research.document}
+--- END RESEARCH ---
+
+Create a detailed chapter-by-chapter book plan. Discuss it with the author, take their feedback, and refine it.
+
+For each chapter include:
+- Chapter number and title
+- Synopsis (2-3 paragraphs describing what the chapter covers)
+- Key topics and points
+- Target word count
+
+Also suggest:
+- Front matter (foreword, introduction, preface as appropriate)
+- Back matter (glossary, appendix, bibliography, index as appropriate)
+
+When the author confirms the plan, produce TWO things:
+
+1. The full plan wrapped in <DOCUMENT> tags
+2. A JSON array of chapters wrapped in <CHAPTERS> tags:
+
+<CHAPTERS>
+[{"number":1,"title":"Chapter Title","synopsis":"Brief synopsis","wordTarget":5000}, ...]
+</CHAPTERS>
+
+<DOCUMENT>
+[The complete detailed book plan]
+</DOCUMENT>
+
+Make the plan detailed enough that a writer (or AI) could write each chapter based on it.`,
+    getInitial: (p) => `Excellent! We now have a solid concept and structure. Let's create your chapter-by-chapter book plan.\n\nBased on everything we've discussed, here's what I'm thinking for the overall structure. Let me lay out a proposed chapter plan, and you can tell me what you'd like to change.\n\nGive me just a moment to put this together...`
+  }
+};
+
+// ============================================================
+// BRAINSTORM INTERACTIVE QUESTIONS
+// ============================================================
+const BRAINSTORM_QUESTIONS = [
+  {
+    id: 'subject',
+    question: "", // Dynamically set after AI deduction
+    subtitle: "",
+    type: 'ai-deduced', // Special type — AI guesses subject from title
+    options: null,
+    placeholder: "e.g. The history and craft of premium cigars, from seed to smoke..."
+  },
+  {
+    id: 'audience',
+    question: "Who will read this book?",
+    subtitle: "Pick the audience that best fits, or describe your own.",
+    options: [
+      { icon: '🌱', label: 'Complete Beginners', desc: 'People new to the topic who want a friendly introduction' },
+      { icon: '🔥', label: 'Enthusiasts', desc: 'Hobbyists who already know the basics and want to go deeper' },
+      { icon: '🎯', label: 'Both Beginners & Enthusiasts', desc: 'Accessible to newcomers but rich enough for fans' },
+      { icon: '🏆', label: 'Professionals & Experts', desc: 'Industry insiders, advanced practitioners, or academics' }
+    ]
+  },
+  {
+    id: 'angle',
+    question: "What makes YOUR book unique?",
+    subtitle: "What perspective or expertise do you bring that no one else has?",
+    options: [
+      { icon: '🗺️', label: 'Personal Journey & Stories', desc: "I'll share my own experiences, travels, and discoveries" },
+      { icon: '📚', label: 'Expert Knowledge & Research', desc: "I have deep expertise and want to be the definitive guide" },
+      { icon: '🏛️', label: 'Historical Deep-Dive', desc: 'I want to explore the rich history and origins of the subject' },
+      { icon: '🌍', label: 'Cultural Exploration', desc: 'I want to explore how different cultures relate to this topic' }
+    ]
+  },
+  {
+    id: 'tone',
+    question: "What tone should the book have?",
+    subtitle: "How should it feel when someone reads it?",
+    options: [
+      { icon: '☕', label: 'Casual & Conversational', desc: 'Like chatting with a knowledgeable friend over coffee' },
+      { icon: '🎓', label: 'Educational & Informative', desc: 'Clear, structured, and packed with useful information' },
+      { icon: '📖', label: 'Storytelling & Narrative', desc: 'Rich prose with stories, anecdotes, and vivid descriptions' },
+      { icon: '🔬', label: 'Formal & Authoritative', desc: 'Serious, professional, reference-quality writing' }
+    ]
+  },
+  {
+    id: 'scope',
+    question: "How big should this book be?",
+    subtitle: "This helps us plan the right number of chapters and depth.",
+    options: [
+      { icon: '📘', label: 'Quick Focused Guide', desc: '30,000–50,000 words · 8–12 chapters · Great for a first book' },
+      { icon: '📗', label: 'Standard Book', desc: '50,000–80,000 words · 12–18 chapters · The sweet spot for most topics' },
+      { icon: '📕', label: 'Comprehensive Reference', desc: '80,000–120,000 words · 18–25 chapters · The definitive guide' }
+    ]
+  },
+  {
+    id: 'takeaway',
+    question: "What should readers take away from your book?",
+    subtitle: "When someone finishes reading, what do you want them to feel or know?",
+    options: null,
+    placeholder: "e.g. I want readers to feel confident choosing and enjoying cigars, and appreciate the craftsmanship behind them..."
+  },
+  {
+    id: 'extras',
+    question: "Anything else you'd like to include?",
+    subtitle: "Think about special sections, features, or topics that matter to you.",
+    options: [
+      { icon: '📸', label: 'Photos & Illustrations', desc: 'Visual content like photos, diagrams, or illustrations' },
+      { icon: '📋', label: 'Guides & Checklists', desc: 'Practical resources like buying guides, checklists, or ratings' },
+      { icon: '💬', label: 'Interviews & Quotes', desc: 'Conversations with experts, makers, or notable figures' },
+      { icon: '🗂️', label: 'Glossary & Reference', desc: 'A glossary of terms, bibliography, or reference appendix' }
+    ],
+    multi: true
+  }
+];
+
+let chatStreaming = false;
+let subjectDeduction = { loading: false, result: null, error: null };
+
+async function deduceSubjectFromTitle(p) {
+  if (subjectDeduction.loading || subjectDeduction.result) return;
+  subjectDeduction.loading = true;
+  navigate('phase', { phase: 1 }); // re-render to show loading
+
+  try {
+    let fullText = '';
+    await callClaude([{
+      role: 'user',
+      content: `The user is starting to write a book. The working title they chose is: "${p.name}"\n\nBased ONLY on this title, what do you think the book is about? Give a concise 1-2 sentence description of the likely subject matter. Be specific but not overly detailed. Just the subject/topic. Do not add any extra commentary.`
+    }], 'You are a helpful assistant. Respond with ONLY a brief 1-2 sentence description of what the book is likely about based on its title. Nothing else.', 300, (chunk, full) => {
+      fullText = full;
+    });
+    subjectDeduction.result = fullText.trim();
+    subjectDeduction.loading = false;
+  } catch (e) {
+    subjectDeduction.error = e.message;
+    subjectDeduction.loading = false;
+    subjectDeduction.result = null;
+  }
+  navigate('phase', { phase: 1 }); // re-render with result
+}
+
+function renderPhase(app) {
+  const p = getProject();
+  if (!p) return navigate('home');
+  const phase = viewParams.phase || p.currentPhase;
+  const cfg = PHASE_CONFIG[phase];
+  if (!cfg) return;
+  const store = p[cfg.storeKey];
+
+  // Phase 1 uses the interactive brainstorm flow
+  if (phase === 1 && !store.document) {
+    renderBrainstorm(app, p);
+    return;
+  }
+
+  app.innerHTML = `
+    <div class="header">
+      <div class="logo">BOOK <span>WIZARD</span></div>
+      <div class="steps ui">
+        ${[1,2,3,4].map(n => `
+          <div class="step ${n === phase ? 'active' : ''} ${n < phase || (p.currentPhase > n) ? 'done' : ''}" onclick="${n <= p.currentPhase ? `navigate('phase',{phase:${n}})` : ''}">
+            <div class="step-num">${n}</div>
+            <span>${['','Brainstorm','Research','Plan','Write'][n]}</span>
+          </div>
+          ${n < 4 ? '<span class="step-arrow">&rarr;</span>' : ''}
+        `).join('')}
+      </div>
+      <div class="header-actions ui">
+        <button class="btn btn-ghost btn-sm" onclick="navigate('home')">Home</button>
+      </div>
+    </div>
+    <div class="main">
+      <div class="content-area">
+        <div class="chat-container">
+          <div class="chat-messages" id="chat-messages"></div>
+          <div id="doc-confirm-area"></div>
+          <div class="chat-input-area" id="chat-input-area">
+            <div class="chat-input-wrap">
+              <textarea id="chat-input" placeholder="Type your message..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendPhaseMessage(${phase})}" oninput="autoGrow(this)"></textarea>
+              <button class="btn btn-gold btn-sm" onclick="sendPhaseMessage(${phase})" id="send-btn">Send</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const msgArea = document.getElementById('chat-messages');
+  // Render existing messages
+  if (store.messages.length === 0 && !store.document) {
+    const initial = cfg.getInitial(p);
+    store.messages.push({ role: 'assistant', content: initial });
+    saveProject();
+    // If phase 3, auto-generate initial plan by inserting a user prompt
+    if (phase === 3) {
+      store.messages.push({ role: 'user', content: 'Please create the detailed chapter-by-chapter book plan based on our concept and research.' });
+      saveProject();
+      renderMessages(store.messages, msgArea);
+      setTimeout(() => sendAutoPhaseMessage(phase), 500);
+      return;
+    }
+  }
+  renderMessages(store.messages, msgArea);
+
+  // If document already confirmed, show it
+  if (store.document) {
+    showConfirmedDoc(store.document, phase);
+  }
+}
+
+// ============================================================
+// BRAINSTORM INTERACTIVE FLOW
+// ============================================================
+function renderBrainstorm(app, p) {
+  if (!p.brainstorm.answers) p.brainstorm.answers = {};
+  if (p.brainstorm.currentQ === undefined) p.brainstorm.currentQ = 0;
+  const answers = p.brainstorm.answers;
+  const currentQ = p.brainstorm.currentQ;
+  const total = BRAINSTORM_QUESTIONS.length;
+
+  // If all questions answered and generating
+  if (currentQ >= total) {
+    renderBrainstormGenerating(app, p);
+    return;
+  }
+
+  const q = BRAINSTORM_QUESTIONS[currentQ];
+
+  // For the first question (AI-deduced subject), trigger deduction if not done
+  const isAiDeduced = q.type === 'ai-deduced';
+  if (isAiDeduced && !subjectDeduction.result && !subjectDeduction.loading && !subjectDeduction.error) {
+    deduceSubjectFromTitle(p);
+  }
+
+  // Build the question content for AI-deduced type
+  let questionContent = '';
+  if (isAiDeduced) {
+    if (subjectDeduction.loading) {
+      questionContent = `
+        <div class="bs-step">
+          <div class="bs-question">Analyzing your book title...</div>
+          <div class="bs-subtitle">Reading "<strong>${esc(p.name)}</strong>" to understand what your book is about.</div>
+          <div style="display:flex;justify-content:center;padding:40px 0;">
+            <div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>
+          </div>
+        </div>`;
+    } else if (subjectDeduction.error) {
+      questionContent = `
+        <div class="bs-step">
+          <div class="bs-question">What is your book about?</div>
+          <div class="bs-subtitle">We couldn't auto-detect the subject. Please describe it in your own words.</div>
+          <div class="bs-custom">
+            <textarea id="bs-custom-input" placeholder="${q.placeholder || 'Type your answer here...'}" rows="3" oninput="autoGrow(this)"></textarea>
+          </div>
+          <div style="display:flex;gap:12px;margin-top:16px;justify-content:flex-end;">
+            <button class="btn btn-gold" onclick="bsSubmitAnswer(${currentQ})" id="bs-next-btn">Next</button>
+          </div>
+        </div>`;
+    } else if (subjectDeduction.result) {
+      questionContent = `
+        <div class="bs-step">
+          <div class="bs-question">Is this what your book is about?</div>
+          <div class="bs-subtitle">Based on your title "<strong>${esc(p.name)}</strong>", here's what I think:</div>
+
+          <div class="bs-ai-guess" style="background:rgba(212,175,55,0.08);border:1px solid var(--gold);border-radius:12px;padding:20px 24px;margin:20px 0;font-size:16px;line-height:1.6;color:var(--text);">
+            ${esc(subjectDeduction.result)}
+          </div>
+
+          <div class="bs-options" id="bs-options">
+            <div class="bs-option" onclick="confirmDeducedSubject(true, this)" data-idx="0">
+              <div class="bs-option-icon">&#10003;</div>
+              <div class="bs-option-text">
+                <div class="bs-option-label">Yes, that's right!</div>
+                <div class="bs-option-desc">The AI nailed it — let's move on</div>
+              </div>
+            </div>
+            <div class="bs-option" onclick="confirmDeducedSubject(false, this)" data-idx="1">
+              <div class="bs-option-icon">&#9998;</div>
+              <div class="bs-option-text">
+                <div class="bs-option-label">Close, but let me refine it</div>
+                <div class="bs-option-desc">I'll edit the description to better match my vision</div>
+              </div>
+            </div>
+            <div class="bs-option" onclick="confirmDeducedSubject('different', this)" data-idx="2">
+              <div class="bs-option-icon">&#10007;</div>
+              <div class="bs-option-text">
+                <div class="bs-option-label">Not quite — it's about something else</div>
+                <div class="bs-option-desc">I'll describe the subject in my own words</div>
+              </div>
+            </div>
+          </div>
+
+          <div id="bs-refine-area" style="display:none;">
+            <div class="bs-or">— Edit the subject below —</div>
+            <div class="bs-custom">
+              <textarea id="bs-custom-input" placeholder="Describe what your book is really about..." rows="3" oninput="autoGrow(this)"></textarea>
+            </div>
+            <div style="display:flex;gap:12px;margin-top:16px;justify-content:flex-end;">
+              <button class="btn btn-gold" onclick="bsSubmitAnswer(${currentQ})" id="bs-next-btn">Next</button>
+            </div>
+          </div>
+        </div>`;
+    }
+  } else {
+    // Standard question rendering
+    questionContent = `
+      <div class="bs-step">
+        <div class="bs-question">${q.question}</div>
+        <div class="bs-subtitle">${q.subtitle}</div>
+
+        ${q.options ? `
+          <div class="bs-options" id="bs-options">
+            ${q.options.map((opt, i) => `
+              <div class="bs-option" onclick="selectBsOption(${currentQ}, ${i}, this, ${q.multi||false})" data-idx="${i}">
+                <div class="bs-option-icon">${opt.icon}</div>
+                <div class="bs-option-text">
+                  <div class="bs-option-label">${opt.label}</div>
+                  <div class="bs-option-desc">${opt.desc}</div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+          <div class="bs-or">— or type your own —</div>
+        ` : ''}
+
+        <div class="bs-custom">
+          <textarea id="bs-custom-input" placeholder="${q.placeholder || 'Type your answer here...'}" rows="${q.options ? 1 : 3}" oninput="autoGrow(this)"></textarea>
+        </div>
+
+        <div style="display:flex;gap:12px;margin-top:16px;justify-content:space-between;">
+          <div>
+            ${currentQ > 0 ? `<button class="btn btn-ghost btn-sm" onclick="bsPrevQuestion()">Back</button>` : ''}
+          </div>
+          <button class="btn btn-gold" onclick="bsSubmitAnswer(${currentQ})" id="bs-next-btn">
+            ${currentQ < total - 1 ? 'Next' : 'Generate My Book Concept'}
+          </button>
+        </div>
+      </div>`;
+  }
+
+  app.innerHTML = `
+    <div class="header">
+      <div class="logo">BOOK <span>WIZARD</span></div>
+      <div class="steps ui">
+        ${[1,2,3,4].map(n => `
+          <div class="step ${n === 1 ? 'active' : ''} ${n < 1 ? 'done' : ''}">
+            <div class="step-num">${n}</div>
+            <span>${['','Brainstorm','Research','Plan','Write'][n]}</span>
+          </div>
+          ${n < 4 ? '<span class="step-arrow">&rarr;</span>' : ''}
+        `).join('')}
+      </div>
+      <div class="header-actions ui">
+        <button class="btn btn-ghost btn-sm" onclick="navigate('home')">Home</button>
+      </div>
+    </div>
+    <div class="main">
+      <div class="content-area">
+        <div class="bs-container">
+          <!-- Progress dots -->
+          <div class="bs-progress">
+            ${BRAINSTORM_QUESTIONS.map((_,i) => `<div class="bs-dot ${i < currentQ ? 'done' : ''} ${i === currentQ ? 'active' : ''}"></div>`).join('')}
+          </div>
+
+          <!-- Previous answers (compact) -->
+          ${Object.entries(answers).map(([key, val]) => {
+            const qDef = BRAINSTORM_QUESTIONS.find(q => q.id === key);
+            return `<div class="bs-answer">
+              <span class="bs-answer-label">${qDef ? qDef.id : key}</span>
+              <span class="bs-answer-text">${esc(Array.isArray(val) ? val.join(', ') : val)}</span>
+            </div>`;
+          }).join('')}
+
+          ${questionContent}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+let bsSelectedOptions = [];
+
+function selectBsOption(qIdx, optIdx, el, multi) {
+  if (multi) {
+    el.classList.toggle('selected');
+    if (el.classList.contains('selected')) {
+      bsSelectedOptions.push(optIdx);
+    } else {
+      bsSelectedOptions = bsSelectedOptions.filter(i => i !== optIdx);
+    }
+  } else {
+    document.querySelectorAll('.bs-option').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+    bsSelectedOptions = [optIdx];
+  }
+}
+
+function bsSubmitAnswer(qIdx) {
+  const q = BRAINSTORM_QUESTIONS[qIdx];
+  const customInput = document.getElementById('bs-custom-input');
+  const customText = customInput?.value?.trim();
+
+  let answer = '';
+  if (customText) {
+    answer = customText;
+  } else if (bsSelectedOptions.length > 0 && q.options) {
+    if (q.multi) {
+      answer = bsSelectedOptions.map(i => q.options[i].label).join(', ');
+    } else {
+      answer = q.options[bsSelectedOptions[0]].label;
+    }
+  }
+
+  if (!answer) {
+    // Shake the input to indicate they need to answer
+    const btn = document.getElementById('bs-next-btn');
+    if (btn) { btn.style.animation = 'none'; btn.offsetHeight; btn.style.animation = ''; }
+    if (customInput) customInput.focus();
+    return;
+  }
+
+  const p = getProject();
+  if (!p.brainstorm.answers) p.brainstorm.answers = {};
+  p.brainstorm.answers[q.id] = answer;
+  p.brainstorm.currentQ = qIdx + 1;
+  bsSelectedOptions = [];
+  saveProject();
+
+  // If all questions done, generate concept
+  if (qIdx + 1 >= BRAINSTORM_QUESTIONS.length) {
+    renderBrainstorm(document.getElementById('app'), p);
+    generateBrainstormConcept(p);
+  } else {
+    navigate('phase', { phase: 1 });
+  }
+}
+
+function bsPrevQuestion() {
+  const p = getProject();
+  if (p.brainstorm.currentQ > 0) {
+    p.brainstorm.currentQ--;
+    // Remove the answer for the current question so they can re-answer
+    const q = BRAINSTORM_QUESTIONS[p.brainstorm.currentQ];
+    delete p.brainstorm.answers[q.id];
+    bsSelectedOptions = [];
+    // If going back to subject question, reset deduction state
+    if (q.type === 'ai-deduced') {
+      subjectDeduction = { loading: false, result: null, error: null };
+    }
+    saveProject();
+    navigate('phase', { phase: 1 });
+  }
+}
+
+function confirmDeducedSubject(choice, el) {
+  if (choice === true) {
+    // User confirmed — use the AI's deduction as the answer
+    const p = getProject();
+    if (!p.brainstorm.answers) p.brainstorm.answers = {};
+    p.brainstorm.answers['subject'] = subjectDeduction.result;
+    p.brainstorm.currentQ = 1;
+    bsSelectedOptions = [];
+    saveProject();
+    navigate('phase', { phase: 1 });
+  } else if (choice === false || choice === 'different') {
+    // Show the refine area with pre-filled text (or empty for 'different')
+    document.querySelectorAll('.bs-option').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+    const refineArea = document.getElementById('bs-refine-area');
+    const textarea = document.getElementById('bs-custom-input');
+    if (refineArea) {
+      refineArea.style.display = 'block';
+      if (textarea) {
+        textarea.value = choice === false ? subjectDeduction.result : '';
+        textarea.focus();
+        autoGrow(textarea);
+      }
+    }
+  }
+}
+
+function renderBrainstormGenerating(app, p) {
+  app.innerHTML = `
+    <div class="header">
+      <div class="logo">BOOK <span>WIZARD</span></div>
+      <div class="steps ui">
+        ${[1,2,3,4].map(n => `
+          <div class="step ${n === 1 ? 'active' : ''}">
+            <div class="step-num">${n}</div>
+            <span>${['','Brainstorm','Research','Plan','Write'][n]}</span>
+          </div>
+          ${n < 4 ? '<span class="step-arrow">&rarr;</span>' : ''}
+        `).join('')}
+      </div>
+      <div class="header-actions ui">
+        <button class="btn btn-ghost btn-sm" onclick="navigate('home')">Home</button>
+      </div>
+    </div>
+    <div class="main">
+      <div class="content-area">
+        <div class="bs-container">
+          <!-- Show all answers -->
+          <h3 style="color:var(--gold);margin-bottom:16px;">Your Answers</h3>
+          ${Object.entries(p.brainstorm.answers).map(([key, val]) => {
+            const qDef = BRAINSTORM_QUESTIONS.find(q => q.id === key);
+            return `<div class="bs-answer">
+              <span class="bs-answer-label">${qDef ? qDef.id : key}</span>
+              <span class="bs-answer-text">${esc(Array.isArray(val) ? val.join(', ') : val)}</span>
+            </div>`;
+          }).join('')}
+
+          <div class="bs-generating" id="bs-generating">
+            <div class="typing-indicator" style="justify-content:center;"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>
+            <p class="ui">Creating your Book Concept Document...</p>
+          </div>
+
+          <div id="bs-concept-result"></div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function generateBrainstormConcept(p) {
+  const answers = p.brainstorm.answers;
+  const answersText = Object.entries(answers).map(([key, val]) => {
+    const qDef = BRAINSTORM_QUESTIONS.find(q => q.id === key);
+    return `${qDef ? qDef.question : key}: ${Array.isArray(val) ? val.join(', ') : val}`;
+  }).join('\n');
+
+  const system = `You are a book-writing consultant. Based on the author's brainstorming answers below, create a comprehensive Book Concept Document.
+
+Book project name: "${p.name}"
+
+Author's brainstorming answers:
+${answersText}
+
+Create a well-organized Book Concept Document that synthesizes all the answers into a cohesive vision for the book. Include sections for:
+- Book Title (suggest a refined title based on the working title and subject)
+- Core Subject & Premise
+- Target Audience
+- Author's Unique Angle
+- Tone & Style
+- Scope & Scale
+- Key Takeaways for Readers
+- Special Features (photos, guides, glossary, etc. if mentioned)
+
+Be warm, encouraging, and professional. Make the author feel excited about their book.
+
+Wrap the complete document in <DOCUMENT> tags:
+<DOCUMENT>
+[The Book Concept Document]
+</DOCUMENT>`;
+
+  try {
+    let fullText = '';
+    const resultArea = document.getElementById('bs-concept-result');
+    const genArea = document.getElementById('bs-generating');
+
+    await callClaude([{ role: 'user', content: 'Please create my Book Concept Document based on my brainstorming answers.' }], system, CONFIG.maxTokensDoc, (chunk, full) => {
+      fullText = full;
+      if (genArea) genArea.style.display = 'none';
+      if (resultArea) {
+        const docMatch = full.match(/<DOCUMENT>([\s\S]*?)<\/DOCUMENT>/);
+        const displayText = docMatch ? docMatch[1].trim() : full.replace(/<DOCUMENT>/g, '').replace(/<\/DOCUMENT>/g, '');
+        resultArea.innerHTML = `
+          <div class="doc-confirm" style="margin-top:16px;">
+            <h3>Your Book Concept Document</h3>
+            <div class="doc-content">${md(displayText)}</div>
+            <div class="doc-actions">
+              <button class="btn btn-ghost" onclick="bsRestart()">Start Over</button>
+              <button class="btn btn-gold" onclick="bsConfirmConcept()">Looks Great — Continue to Research</button>
+            </div>
+          </div>
+        `;
+      }
+    });
+
+    // Extract and save document
+    const docMatch = fullText.match(/<DOCUMENT>([\s\S]*?)<\/DOCUMENT>/);
+    if (docMatch) {
+      p.brainstorm.document = docMatch[1].trim();
+    } else {
+      p.brainstorm.document = fullText;
+    }
+    // Also store in messages for compatibility
+    p.brainstorm.messages = [
+      { role: 'user', content: 'Brainstorming answers:\n' + answersText },
+      { role: 'assistant', content: fullText }
+    ];
+    saveProject();
+
+  } catch(e) {
+    console.error('Brainstorm generation error:', e);
+    const genArea = document.getElementById('bs-generating');
+    const resultArea = document.getElementById('bs-concept-result');
+    if (genArea) genArea.style.display = 'none';
+    if (resultArea) {
+      resultArea.innerHTML = `
+        <div class="card" style="border-color:var(--red);margin-top:16px;">
+          <p style="color:var(--red);margin-bottom:12px;">Something went wrong: ${esc(e.message)}</p>
+          <button class="btn btn-gold" onclick="generateBrainstormConcept(getProject())">Try Again</button>
+        </div>
+      `;
+    }
+  }
+}
+
+function bsRestart() {
+  showModal('Start Over?', 'This will clear all your brainstorming answers so you can begin fresh.', [
+    { label: 'Cancel', cls: 'btn-ghost' },
+    { label: 'Start Over', cls: 'btn-gold', fn: () => {
+      const p = getProject();
+      p.brainstorm = { messages: [], document: '', answers: {}, currentQ: 0 };
+      bsSelectedOptions = [];
+      saveProject();
+      navigate('phase', { phase: 1 });
+    }}
+  ]);
+}
+
+function bsConfirmConcept() {
+  const p = getProject();
+  if (!p.brainstorm.document) return;
+  p.currentPhase = 2;
+  saveProject();
+  navigate('phase', { phase: 2 });
+}
+
+function renderMessages(messages, container) {
+  container.innerHTML = messages.map(m => `
+    <div class="chat-msg ${m.role === 'assistant' ? 'ai' : 'user'}">
+      <div class="chat-avatar">${m.role === 'assistant' ? 'AI' : 'You'}</div>
+      <div class="chat-bubble">${md(cleanDocTags(m.content))}</div>
+    </div>
+  `).join('');
+  container.scrollTop = container.scrollHeight;
+}
+
+function cleanDocTags(text) {
+  return text.replace(/<DOCUMENT>[\s\S]*?<\/DOCUMENT>/g, '[Document generated - see below]')
+             .replace(/<CHAPTERS>[\s\S]*?<\/CHAPTERS>/g, '');
+}
+
+async function sendPhaseMessage(phase) {
+  if (chatStreaming) return;
+  const input = document.getElementById('chat-input');
+  const text = input?.value?.trim();
+  if (!text) return;
+  input.value = '';
+  autoGrow(input);
+
+  const p = getProject();
+  const cfg = PHASE_CONFIG[phase];
+  const store = p[cfg.storeKey];
+
+  store.messages.push({ role: 'user', content: text });
+  saveProject();
+
+  await streamPhaseResponse(phase);
+}
+
+async function sendAutoPhaseMessage(phase) {
+  await streamPhaseResponse(phase);
+}
+
+async function streamPhaseResponse(phase) {
+  const p = getProject();
+  const cfg = PHASE_CONFIG[phase];
+  const store = p[cfg.storeKey];
+  const msgArea = document.getElementById('chat-messages');
+  const sendBtn = document.getElementById('send-btn');
+
+  chatStreaming = true;
+  if (sendBtn) sendBtn.disabled = true;
+
+  // Add placeholder
+  const aiMsg = { role: 'assistant', content: '' };
+  store.messages.push(aiMsg);
+  renderMessages(store.messages, msgArea);
+
+  // Show typing
+  const lastBubble = msgArea.querySelector('.chat-msg.ai:last-child .chat-bubble');
+  if (lastBubble) lastBubble.innerHTML = '<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>';
+
+  try {
+    // API requires messages to start with 'user' role — skip leading assistant messages
+    const allMsgs = store.messages.slice(0, -1).map(m => ({ role: m.role, content: m.content }));
+    const firstUserIdx = allMsgs.findIndex(m => m.role === 'user');
+    const apiMessages = firstUserIdx >= 0 ? allMsgs.slice(firstUserIdx) : allMsgs;
+    const fullText = await callClaude(apiMessages, cfg.getSystem(p), cfg.maxTokens, (chunk, full) => {
+      aiMsg.content = full;
+      if (lastBubble) {
+        lastBubble.innerHTML = md(cleanDocTags(full));
+        msgArea.scrollTop = msgArea.scrollHeight;
+      }
+    });
+    aiMsg.content = fullText;
+    saveProject();
+
+    // Check for document
+    const docMatch = fullText.match(/<DOCUMENT>([\s\S]*?)<\/DOCUMENT>/);
+    if (docMatch) {
+      const doc = docMatch[1].trim();
+      store.document = doc;
+
+      // Parse chapters for phase 3
+      if (phase === 3) {
+        const chapMatch = fullText.match(/<CHAPTERS>([\s\S]*?)<\/CHAPTERS>/);
+        if (chapMatch) {
+          try { store.chapters = JSON.parse(chapMatch[1].trim()); } catch {}
+        }
+      }
+      saveProject();
+      showDocConfirmation(doc, phase);
+    }
+  } catch(e) {
+    console.error('Chat API error:', e);
+    if (e.name === 'AbortError') {
+      // User cancelled - remove the empty AI message
+      store.messages.pop();
+      saveProject();
+    } else {
+      // Show error in the AI bubble and keep it visible
+      aiMsg.content = `Something went wrong: ${e.message}\n\nPlease check your API key in API Settings and try again.`;
+      saveProject();
+    }
+  }
+
+  chatStreaming = false;
+  if (sendBtn) sendBtn.disabled = false;
+  renderMessages(store.messages, msgArea);
+}
+
+function showDocConfirmation(doc, phase) {
+  const area = document.getElementById('doc-confirm-area');
+  if (!area) return;
+  const nextLabel = phase < 3 ? 'Continue to ' + ['','','Research & Structure','Book Plan'][phase+1] : 'Start Writing Your Book';
+  area.innerHTML = `
+    <div class="doc-confirm">
+      <h3>${['','Book Concept Document','Research & Structure Document','Book Plan'][phase]}</h3>
+      <div class="doc-content">${md(doc)}</div>
+      <div class="doc-actions">
+        <button class="btn btn-ghost" onclick="requestDocChanges(${phase})">I'd like changes</button>
+        <button class="btn btn-gold" onclick="confirmPhaseDoc(${phase})">${nextLabel}</button>
+      </div>
+    </div>
+  `;
+  area.scrollIntoView({ behavior: 'smooth' });
+}
+
+function showConfirmedDoc(doc, phase) {
+  const area = document.getElementById('doc-confirm-area');
+  if (!area) return;
+  const p = getProject();
+  const canProceed = phase < p.currentPhase || (phase === 3 && p.chapters.length > 0);
+  area.innerHTML = `
+    <div class="doc-confirm" style="border-color:var(--green);">
+      <h3 style="color:var(--green);">Confirmed: ${['','Book Concept','Research & Structure','Book Plan'][phase]}</h3>
+      <div class="doc-content">${md(doc)}</div>
+      ${canProceed && phase < 3 ? `<div class="doc-actions"><button class="btn btn-gold" onclick="navigate('phase',{phase:${phase+1}})">Continue to Phase ${phase+1}</button></div>` : ''}
+      ${phase === 3 && p.currentPhase >= 4 ? `<div class="doc-actions"><button class="btn btn-gold" onclick="navigate('project')">Go to Writing Studio</button></div>` : ''}
+    </div>
+  `;
+  // Hide input area
+  const inputArea = document.getElementById('chat-input-area');
+  if (inputArea && (p.currentPhase > phase || (phase === 3 && p.chapters.length > 0))) inputArea.style.display = 'none';
+}
+
+function requestDocChanges(phase) {
+  const p = getProject();
+  const cfg = PHASE_CONFIG[phase];
+  const store = p[cfg.storeKey];
+  store.document = '';
+  if (phase === 3) store.chapters = [];
+  saveProject();
+  document.getElementById('doc-confirm-area').innerHTML = '';
+  document.getElementById('chat-input')?.focus();
+}
+
+function confirmPhaseDoc(phase) {
+  const p = getProject();
+  if (phase < 3) {
+    p.currentPhase = phase + 1;
+    saveProject();
+    navigate('phase', { phase: phase + 1 });
+  } else {
+    // Phase 3 complete - create chapters and enter project mode
+    if (p.plan.chapters.length) {
+      p.chapters = p.plan.chapters.map(c => ({
+        number: c.number, title: c.title, synopsis: c.synopsis,
+        wordTarget: c.wordTarget || 5000, status: 'not-started', writingMode: null,
+        content: '', notes: [], versions: [], images: [], summary: ''
+      }));
+      p.settings.totalWordTarget = p.chapters.reduce((s,c) => s + c.wordTarget, 0);
+    }
+    p.currentPhase = 4;
+    saveProject();
+    navigate('project');
+  }
+}
+
+// ============================================================
+// VIEW: PROJECT MODE (Dashboard)
+// ============================================================
+function renderProject(app) {
+  const p = getProject();
+  if (!p) return navigate('home');
+  const totalWords = p.chapters.reduce((s,c) => s + wordCount(c.content), 0);
+  const totalTarget = p.settings.totalWordTarget || 1;
+  const doneCount = p.chapters.filter(c => c.status === 'final').length;
+  const inProgressCount = p.chapters.filter(c => ['writing','draft','reviewing'].includes(c.status)).length;
+
+  app.innerHTML = `
+    <div class="header">
+      <div class="logo">BOOK <span>WIZARD</span></div>
+      <div class="header-actions ui">
+        <button class="btn btn-ghost btn-sm" onclick="navigate('home')">Home</button>
+      </div>
+    </div>
+    <div class="main">
+      ${renderProjectSidebar(p, 'dashboard')}
+      <div class="content-area" style="padding:32px;">
+        <h2 style="color:var(--gold);margin-bottom:4px;">${esc(p.name)}</h2>
+        <p style="color:var(--text3);margin-bottom:24px;" class="ui">Writing Studio</p>
+
+        <div class="stats-grid">
+          <div class="card stat-card">
+            <div class="stat-num">${p.chapters.length}</div>
+            <div class="stat-label">Chapters</div>
+          </div>
+          <div class="card stat-card">
+            <div class="stat-num">${doneCount}</div>
+            <div class="stat-label">Completed</div>
+          </div>
+          <div class="card stat-card">
+            <div class="stat-num">${totalWords.toLocaleString()}</div>
+            <div class="stat-label">Words Written</div>
+          </div>
+          <div class="card stat-card">
+            <div class="stat-num">${totalTarget > 0 ? Math.round(totalWords/totalTarget*100) : 0}%</div>
+            <div class="stat-label">Progress</div>
+          </div>
+        </div>
+
+        <div class="progress-bar" style="margin-bottom:32px;height:10px;">
+          <div class="progress-fill" style="width:${totalTarget > 0 ? Math.min(100,totalWords/totalTarget*100) : 0}%"></div>
+        </div>
+
+        <h3 style="color:var(--text);margin-bottom:16px;">Chapters</h3>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          ${p.chapters.map((c,i) => `
+            <div class="card" style="cursor:pointer;display:flex;align-items:center;gap:16px;" onclick="openChapter(${i})" draggable="true" ondragstart="dragStart(event,${i})" ondragover="dragOver(event)" ondrop="dropChapter(event,${i})" data-idx="${i}">
+              <div style="font-size:24px;color:var(--gold);font-weight:700;width:40px;text-align:center;">${c.number}</div>
+              <div style="flex:1;">
+                <div style="font-weight:600;margin-bottom:4px;">${esc(c.title)}</div>
+                <div style="font-size:13px;color:var(--text3);" class="ui">${wordCount(c.content).toLocaleString()} / ${c.wordTarget.toLocaleString()} words</div>
+              </div>
+              <span class="sidebar-badge ${c.status==='final'?'badge-green':c.status==='not-started'?'badge-gray':'badge-gold'}">${c.status.replace('-',' ')}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderProjectSidebar(p, active) {
+  return `
+    <div class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-title">Project</div>
+        <div class="sidebar-item ${active==='dashboard'?'active':''}" onclick="navigate('project')">Dashboard</div>
+        <div class="sidebar-item" onclick="navigate('phase',{phase:1})">Book Concept</div>
+        <div class="sidebar-item" onclick="navigate('phase',{phase:2})">Research</div>
+        <div class="sidebar-item" onclick="navigate('phase',{phase:3})">Book Plan</div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-title">Chapters</div>
+        ${p.chapters.map((c,i) => `
+          <div class="sidebar-item ${active==='ch-'+i?'active':''}" onclick="openChapter(${i})">
+            <span style="color:${c.status==='final'?'var(--green)':c.status==='not-started'?'var(--text3)':'var(--gold)'};font-size:10px;">&#9679;</span>
+            ${esc(c.title)}
+          </div>
+        `).join('')}
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-title">Tools</div>
+        <div class="sidebar-item ${active==='glossary'?'active':''}" onclick="navigate('glossary')">Glossary <span class="sidebar-badge badge-gray">${p.glossary.length}</span></div>
+        <div class="sidebar-item ${active==='ledger'?'active':''}" onclick="navigate('ledger')">Continuity Ledger</div>
+        <div class="sidebar-item ${active==='voiceprofile'?'active':''}" onclick="navigate('voiceprofile')">Voice Profile</div>
+        <div class="sidebar-item ${active==='images'?'active':''}" onclick="navigate('images')">Image Gallery</div>
+        <div class="sidebar-item" onclick="navigate('readback')">Read Back Mode</div>
+        <div class="sidebar-item" onclick="navigate('export')">Export Manuscript</div>
+      </div>
+    </div>
+  `;
+}
+
+// Drag & drop chapter reordering
+let dragIdx = null;
+function dragStart(e, idx) { dragIdx = idx; e.dataTransfer.effectAllowed = 'move'; e.target.classList.add('dragging'); }
+function dragOver(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }
+function dropChapter(e, targetIdx) {
+  e.preventDefault();
+  if (dragIdx === null || dragIdx === targetIdx) return;
+  const p = getProject();
+  const [moved] = p.chapters.splice(dragIdx, 1);
+  p.chapters.splice(targetIdx, 0, moved);
+  p.chapters.forEach((c,i) => c.number = i + 1);
+  saveProject();
+  navigate('project');
+}
+
+function openChapter(idx) {
+  navigate('chapter', { chapterIdx: idx });
+}
+
+// ============================================================
+// VIEW: CHAPTER
+// ============================================================
+function renderChapter(app) {
+  const p = getProject();
+  const idx = viewParams.chapterIdx;
+  const ch = p?.chapters?.[idx];
+  if (!p || !ch) return navigate('project');
+
+  if (ch.status === 'not-started') {
+    renderChapterChoose(app, p, ch, idx);
+  } else if (ch.writingMode === 'self') {
+    renderChapterSelfWrite(app, p, ch, idx);
+  } else if (ch.writingMode === 'ai') {
+    if (ch.status === 'reviewing') {
+      navigate('review', { chapterIdx: idx });
+    } else {
+      renderChapterAiWrite(app, p, ch, idx);
+    }
+  } else {
+    renderChapterChoose(app, p, ch, idx);
+  }
+}
+
+function renderChapterChoose(app, p, ch, idx) {
+  app.innerHTML = `
+    <div class="header">
+      <div class="logo">BOOK <span>WIZARD</span></div>
+      <div class="header-actions ui">
+        <button class="btn btn-ghost btn-sm" onclick="navigate('project')">Back to Dashboard</button>
+      </div>
+    </div>
+    <div class="center-screen">
+      <div class="center-box">
+        <p style="color:var(--text3);font-size:14px;margin-bottom:8px;" class="ui">Chapter ${ch.number}</p>
+        <h1 style="font-size:28px;">${esc(ch.title)}</h1>
+        <div class="card" style="text-align:left;margin:24px 0;">
+          <h3 style="color:var(--gold);margin-bottom:8px;">Synopsis</h3>
+          <p style="font-size:15px;line-height:1.8;">${esc(ch.synopsis)}</p>
+          <p style="margin-top:12px;font-size:13px;color:var(--text3);" class="ui">Target: ${ch.wordTarget.toLocaleString()} words</p>
+        </div>
+        <p style="margin-bottom:24px;">How would you like to create this chapter?</p>
+        <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;">
+          <button class="btn btn-gold btn-lg" onclick="startChapter(${idx},'self')">
+            I'll Write It Myself
+          </button>
+          <button class="btn btn-outline btn-lg" onclick="startChapter(${idx},'ai')">
+            Let AI Write It
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function startChapter(idx, mode) {
+  const p = getProject();
+  const ch = p.chapters[idx];
+  ch.writingMode = mode;
+  ch.status = 'writing';
+  saveProject();
+
+  if (mode === 'self') {
+    navigate('chapter', { chapterIdx: idx });
+  } else {
+    generateAiChapter(idx);
+  }
+}
+
+// ---- PATH A: Self-write ----
+function renderChapterSelfWrite(app, p, ch, idx) {
+  app.innerHTML = `
+    <div class="header">
+      <div class="logo" style="font-size:16px;">Chapter ${ch.number}: <span>${esc(ch.title)}</span></div>
+      <div class="header-actions ui">
+        <button class="btn btn-ghost btn-sm" onclick="navigate('project')">Dashboard</button>
+        <button class="btn btn-gold btn-sm" onclick="requestAiReview(${idx})">AI Review</button>
+        ${ch.status !== 'final' ? `<button class="btn btn-outline btn-sm" onclick="finalizeChapter(${idx})">Mark as Final</button>` : `<span class="sidebar-badge badge-green" style="font-size:13px;padding:6px 12px;">Final</span>`}
+      </div>
+    </div>
+    <div class="editor-container">
+      <div class="editor-main">
+        <div class="editor-toolbar ui">
+          <div class="word-count">
+            <span id="wc">${wordCount(ch.content).toLocaleString()}</span> / <span class="word-target">${ch.wordTarget.toLocaleString()}</span> words
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-ghost btn-sm" onclick="addImageToChapter(${idx})">Add Image</button>
+            ${ch.versions.length ? `<button class="btn btn-ghost btn-sm" onclick="showVersions(${idx})">History (${ch.versions.length})</button>` : ''}
+          </div>
+        </div>
+        <textarea class="editor-textarea" id="chapter-editor" oninput="onChapterEdit(${idx},this)">${esc(ch.content)}</textarea>
+        ${ch.images.length ? renderChapterImages(ch, idx) : ''}
+      </div>
+      <div class="editor-panel">
+        <div class="tabs">
+          <div class="tab active" onclick="switchEditorTab('assistant',this)">AI Assistant</div>
+          <div class="tab" onclick="switchEditorTab('synopsis',this)">Synopsis</div>
+        </div>
+        <div id="editor-tab-content" style="flex:1;overflow-y:auto;padding:16px;">
+          <div id="assistant-chat" style="display:flex;flex-direction:column;height:100%;">
+            <div id="assistant-messages" style="flex:1;overflow-y:auto;margin-bottom:12px;font-size:14px;line-height:1.7;">
+              <p style="color:var(--text2);">I'm here to help while you write. Ask me anything about your chapter, the topic, or your writing.</p>
+            </div>
+            <textarea id="assistant-input" placeholder="Ask me anything..." rows="2" style="font-size:13px;min-height:40px;" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();askAssistant(${idx})}"></textarea>
+            <button class="btn btn-gold btn-sm" style="margin-top:8px;align-self:flex-end;" onclick="askAssistant(${idx})">Ask</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function onChapterEdit(idx, textarea) {
+  const p = getProject();
+  p.chapters[idx].content = textarea.value;
+  const wc = document.getElementById('wc');
+  if (wc) wc.textContent = wordCount(textarea.value).toLocaleString();
+  clearTimeout(window._saveTimer);
+  window._saveTimer = setTimeout(() => saveProject(), 1000);
+}
+
+function switchEditorTab(tab, el) {
+  $$('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  const content = document.getElementById('editor-tab-content');
+  const p = getProject();
+  const idx = viewParams.chapterIdx;
+  const ch = p.chapters[idx];
+  if (tab === 'synopsis') {
+    content.innerHTML = `<div style="line-height:1.8;font-size:14px;color:var(--text2);">${md(ch.synopsis)}</div>`;
+  } else {
+    content.innerHTML = `
+      <div id="assistant-chat" style="display:flex;flex-direction:column;height:100%;">
+        <div id="assistant-messages" style="flex:1;overflow-y:auto;margin-bottom:12px;font-size:14px;line-height:1.7;">
+          <p style="color:var(--text2);">I'm here to help while you write. Ask me anything.</p>
+        </div>
+        <textarea id="assistant-input" placeholder="Ask me anything..." rows="2" style="font-size:13px;min-height:40px;" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();askAssistant(${idx})}"></textarea>
+        <button class="btn btn-gold btn-sm" style="margin-top:8px;align-self:flex-end;" onclick="askAssistant(${idx})">Ask</button>
+      </div>
+    `;
+  }
+}
+
+async function askAssistant(idx) {
+  const input = document.getElementById('assistant-input');
+  const q = input?.value?.trim();
+  if (!q) return;
+  input.value = '';
+  const msgArea = document.getElementById('assistant-messages');
+  if (!msgArea) return;
+  msgArea.innerHTML += `<div style="color:var(--text);margin:8px 0;"><strong>You:</strong> ${esc(q)}</div>`;
+  msgArea.innerHTML += `<div style="color:var(--text2);margin:8px 0;" id="assistant-reply"><em>Thinking...</em></div>`;
+  msgArea.scrollTop = msgArea.scrollHeight;
+
+  const p = getProject();
+  const ch = p.chapters[idx];
+  try {
+    const reply = await callClaude([{ role:'user', content: q }],
+      `You are a writing assistant helping the author write Chapter ${ch.number}: "${ch.title}".
+
+Book: "${p.name}"
+Synopsis: ${ch.synopsis}
+${p.continuityLedger ? 'Continuity notes: ' + p.continuityLedger.slice(0,2000) : ''}
+${p.voiceProfile ? 'Voice profile: ' + p.voiceProfile.slice(0,1000) : ''}
+
+Answer concisely. Be helpful and supportive.`, CONFIG.maxTokensChat,
+      (chunk, full) => {
+        const r = document.getElementById('assistant-reply');
+        if (r) { r.innerHTML = md(full); msgArea.scrollTop = msgArea.scrollHeight; }
+      });
+  } catch(e) {
+    const r = document.getElementById('assistant-reply');
+    if (r) r.innerHTML = `<span style="color:var(--red)">Error: ${esc(e.message)}</span>`;
+  }
+}
+
+// ---- PATH B: AI-write ----
+async function generateAiChapter(idx) {
+  const p = getProject();
+  const ch = p.chapters[idx];
+
+  // Build context
+  const prevSummaries = p.chapters.filter(c => c.number < ch.number && c.summary).map(c => `Chapter ${c.number} (${c.title}): ${c.summary}`).join('\n\n');
+
+  const system = `You are writing Chapter ${ch.number}: "${ch.title}" of the book "${p.name}".
+
+--- BOOK CONCEPT ---
+${p.brainstorm.document}
+--- END ---
+
+--- BOOK PLAN (This Chapter) ---
+Synopsis: ${ch.synopsis}
+Target word count: ${ch.wordTarget} words
+--- END ---
+
+${p.continuityLedger ? `--- CONTINUITY LEDGER ---\n${p.continuityLedger}\n--- END ---` : ''}
+${p.voiceProfile ? `--- VOICE PROFILE ---\n${p.voiceProfile}\n--- END ---` : ''}
+${p.glossary.length ? `--- GLOSSARY ---\n${p.glossary.map(g=>g.term+': '+g.definition).join('\n')}\n--- END ---` : ''}
+${prevSummaries ? `--- PREVIOUS CHAPTERS SUMMARIES ---\n${prevSummaries}\n--- END ---` : ''}
+
+Write the complete chapter. Aim for approximately ${ch.wordTarget} words. Match the author's voice if a voice profile exists. Maintain consistency with the continuity ledger and previous chapters. Write engaging, professional prose.`;
+
+  navigate('chapter', { chapterIdx: idx });
+  // Wait for render
+  await new Promise(r => setTimeout(r, 100));
+  renderChapterAiWriteLoading(p, ch, idx);
+
+  try {
+    const fullText = await callClaude([{ role:'user', content: `Please write Chapter ${ch.number}: "${ch.title}" now.` }], system, CONFIG.maxTokensChapter,
+      (chunk, full) => {
+        const reader = document.getElementById('ai-chapter-reader');
+        if (reader) {
+          reader.innerHTML = md(full);
+          const container = document.getElementById('reading-scroll');
+          if (container) container.scrollTop = container.scrollHeight;
+        }
+      });
+    ch.content = fullText;
+    ch.status = 'draft';
+    saveProject();
+    navigate('chapter', { chapterIdx: idx });
+  } catch(e) {
+    if (e.name !== 'AbortError') {
+      const reader = document.getElementById('ai-chapter-reader');
+      if (reader) reader.innerHTML += `<p style="color:var(--red)">Error: ${esc(e.message)}. <button class="btn btn-gold btn-sm" onclick="generateAiChapter(${idx})">Retry</button></p>`;
+    }
+  }
+}
+
+function renderChapterAiWriteLoading(p, ch, idx) {
+  const app = document.getElementById('app');
+  app.innerHTML = `
+    <div class="header">
+      <div class="logo" style="font-size:16px;">Chapter ${ch.number}: <span>${esc(ch.title)}</span></div>
+      <div class="header-actions ui">
+        <button class="btn btn-ghost btn-sm" onclick="abortStream();navigate('project')">Cancel</button>
+      </div>
+    </div>
+    <div class="main" style="overflow-y:auto;" id="reading-scroll">
+      <div class="reading-view">
+        <h1>Chapter ${ch.number}: ${esc(ch.title)}</h1>
+        <div id="ai-chapter-reader">
+          <div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>
+          <p style="color:var(--text3);text-align:center;">AI is writing your chapter...</p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderChapterAiWrite(app, p, ch, idx) {
+  app.innerHTML = `
+    <div class="header">
+      <div class="logo" style="font-size:16px;">Chapter ${ch.number}: <span>${esc(ch.title)}</span></div>
+      <div class="header-actions ui">
+        <button class="btn btn-ghost btn-sm" onclick="navigate('project')">Dashboard</button>
+        <button class="btn btn-outline btn-sm" onclick="regenerateChapter(${idx})">Regenerate</button>
+        <button class="btn btn-gold btn-sm" onclick="submitNotesForReview(${idx})">Submit Notes for Review</button>
+        ${ch.status !== 'final' ? `<button class="btn btn-outline btn-sm" onclick="finalizeChapter(${idx})">Mark as Final</button>` : `<span class="sidebar-badge badge-green" style="font-size:13px;padding:6px 12px;">Final</span>`}
+      </div>
+    </div>
+    <div class="editor-container">
+      <div style="flex:1;overflow-y:auto;" id="reading-scroll">
+        <div class="reading-view">
+          <h1>Chapter ${ch.number}: ${esc(ch.title)}</h1>
+          <div>${md(ch.content)}</div>
+          <p style="color:var(--text3);margin-top:24px;text-align:center;" class="ui">${wordCount(ch.content).toLocaleString()} words</p>
+          ${ch.images.length ? renderChapterImages(ch, idx) : ''}
+          <div style="text-align:center;margin-top:16px;">
+            <button class="btn btn-ghost btn-sm" onclick="addImageToChapter(${idx})">Add Image</button>
+          </div>
+        </div>
+      </div>
+      <div class="editor-panel">
+        <div class="notebook">
+          <div class="notebook-header">
+            <h3>Your Notes</h3>
+            <p style="font-size:12px;color:var(--text3);margin-top:4px;">Write notes as you read. When done, click "Submit Notes for Review" above.</p>
+          </div>
+          <div class="notebook-notes" id="notebook-notes">
+            ${ch.notes.map((n,ni) => `
+              <div class="notebook-note">
+                ${esc(n)}
+                <button class="delete-note" onclick="deleteNote(${idx},${ni})">&times;</button>
+              </div>
+            `).join('')}
+            ${!ch.notes.length ? '<p style="color:var(--text3);font-size:13px;padding:8px;">No notes yet. Start reading and jot down anything you want to change.</p>' : ''}
+          </div>
+          <div class="notebook-input">
+            <textarea id="note-input" placeholder="Write a note about something you'd like to change..." rows="3" style="font-size:13px;" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();addNote(${idx})}"></textarea>
+            <button class="btn btn-gold btn-sm" style="margin-top:8px;width:100%;" onclick="addNote(${idx})">Add Note</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function addNote(idx) {
+  const input = document.getElementById('note-input');
+  const text = input?.value?.trim();
+  if (!text) return;
+  const p = getProject();
+  p.chapters[idx].notes.push(text);
+  saveProject();
+  input.value = '';
+  navigate('chapter', { chapterIdx: idx });
+}
+
+function deleteNote(idx, noteIdx) {
+  const p = getProject();
+  p.chapters[idx].notes.splice(noteIdx, 1);
+  saveProject();
+  navigate('chapter', { chapterIdx: idx });
+}
+
+function regenerateChapter(idx) {
+  showModal('Regenerate Chapter?', 'This will discard the current AI-written content and generate a new version.', [
+    { label: 'Cancel', cls: 'btn-ghost' },
+    { label: 'Regenerate', cls: 'btn-gold', fn: () => {
+      const p = getProject();
+      const ch = p.chapters[idx];
+      // Save current as version
+      if (ch.content) {
+        ch.versions.push({ content: ch.content, timestamp: new Date().toISOString(), label: 'Before regeneration' });
+      }
+      ch.content = '';
+      ch.notes = [];
+      ch.status = 'writing';
+      saveProject();
+      generateAiChapter(idx);
+    }}
+  ]);
+}
+
+// ============================================================
+// VIEW: REVIEW
+// ============================================================
+let reviewSuggestions = [];
+
+async function requestAiReview(idx) {
+  const p = getProject();
+  const ch = p.chapters[idx];
+  if (!ch.content.trim()) return showModal('Nothing to Review', 'Write some content first before requesting an AI review.', [{ label: 'OK', cls: 'btn-gold' }]);
+
+  // Save version before review
+  ch.versions.push({ content: ch.content, timestamp: new Date().toISOString(), label: 'Before review' });
+  ch.status = 'reviewing';
+  saveProject();
+
+  navigate('review', { chapterIdx: idx, source: 'self' });
+  await generateReview(idx, []);
+}
+
+async function submitNotesForReview(idx) {
+  const p = getProject();
+  const ch = p.chapters[idx];
+  if (!ch.notes.length) return showModal('No Notes', 'Add some notes about what you\'d like to change before submitting for review.', [{ label: 'OK', cls: 'btn-gold' }]);
+
+  ch.versions.push({ content: ch.content, timestamp: new Date().toISOString(), label: 'Before note review' });
+  ch.status = 'reviewing';
+  saveProject();
+
+  navigate('review', { chapterIdx: idx, source: 'ai' });
+  await generateReview(idx, ch.notes);
+}
+
+async function generateReview(idx, notes) {
+  const p = getProject();
+  const ch = p.chapters[idx];
+  const loadArea = document.getElementById('review-loading');
+  if (loadArea) loadArea.style.display = 'block';
+
+  const notesContext = notes.length ? `\n\nThe author has the following notes/issues to address:\n${notes.map((n,i) => `${i+1}. ${n}`).join('\n')}` : '';
+
+  const system = `You are reviewing Chapter ${ch.number}: "${ch.title}" of "${p.name}".
+
+${p.continuityLedger ? `Continuity Ledger:\n${p.continuityLedger}\n` : ''}
+${p.voiceProfile ? `Voice Profile:\n${p.voiceProfile}\n` : ''}
+Book Plan for this chapter:\n${ch.synopsis}
+
+Review the chapter for:
+- Consistency with the book plan and previous chapters
+- Tone and voice consistency
+- Writing quality (clarity, flow, engagement)
+- Factual accuracy where possible
+- Any issues the author noted
+${notesContext}
+
+For EACH suggested change, use this exact format:
+
+<SUGGESTION>
+<REASON>Why this change is recommended</REASON>
+<OLD>The exact original text passage</OLD>
+<NEW>The suggested replacement text</NEW>
+</SUGGESTION>
+
+After all suggestions, add a brief overall summary of the chapter quality.
+Provide at least 3-5 suggestions but be practical - don't suggest changes for the sake of it.`;
+
+  try {
+    let fullText = '';
+    await callClaude([{ role:'user', content: `Here is the chapter content to review:\n\n${ch.content}` }], system, CONFIG.maxTokensDoc,
+      (chunk, full) => {
+        fullText = full;
+        if (loadArea) loadArea.innerHTML = `<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div><p style="color:var(--text3);" class="ui">Reviewing chapter... please wait.</p>`;
+      });
+
+    // Parse suggestions
+    reviewSuggestions = [];
+    const regex = /<SUGGESTION>\s*<REASON>([\s\S]*?)<\/REASON>\s*<OLD>([\s\S]*?)<\/OLD>\s*<NEW>([\s\S]*?)<\/NEW>\s*<\/SUGGESTION>/g;
+    let match;
+    while ((match = regex.exec(fullText)) !== null) {
+      reviewSuggestions.push({ reason: match[1].trim(), old: match[2].trim(), new_: match[3].trim(), status: 'pending' });
+    }
+
+    // Extract summary (text after last </SUGGESTION>)
+    const lastIdx = fullText.lastIndexOf('</SUGGESTION>');
+    const summary = lastIdx >= 0 ? fullText.slice(lastIdx + 13).trim() : '';
+
+    renderReviewResults(idx, reviewSuggestions, summary);
+  } catch(e) {
+    if (loadArea) loadArea.innerHTML = `<p style="color:var(--red)">Error: ${esc(e.message)} <button class="btn btn-gold btn-sm" onclick="generateReview(${idx},${JSON.stringify(notes)})">Retry</button></p>`;
+  }
+}
+
+function renderReview(app) {
+  const p = getProject();
+  const idx = viewParams.chapterIdx;
+  const ch = p?.chapters?.[idx];
+  if (!p || !ch) return navigate('project');
+
+  app.innerHTML = `
+    <div class="header">
+      <div class="logo" style="font-size:16px;">Review: Chapter ${ch.number} <span>${esc(ch.title)}</span></div>
+      <div class="header-actions ui">
+        <button class="btn btn-ghost btn-sm" onclick="cancelReview(${idx})">Cancel Review</button>
+        <button class="btn btn-gold btn-sm" onclick="applyReview(${idx})">Apply Changes & Finish</button>
+      </div>
+    </div>
+    <div class="main">
+      <div class="content-area" style="padding:24px;">
+        <div style="max-width:900px;margin:0 auto;">
+          <div id="review-loading">
+            <div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>
+            <p style="color:var(--text3);" class="ui">AI is reviewing your chapter...</p>
+          </div>
+          <div id="review-results"></div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderReviewResults(idx, suggestions, summary) {
+  const loadArea = document.getElementById('review-loading');
+  if (loadArea) loadArea.style.display = 'none';
+  const results = document.getElementById('review-results');
+  if (!results) return;
+
+  results.innerHTML = `
+    <h3 style="color:var(--gold);margin-bottom:16px;">Review Complete — ${suggestions.length} Suggestion${suggestions.length!==1?'s':''}</h3>
+    ${summary ? `<div class="card" style="margin-bottom:24px;"><p style="line-height:1.7;">${md(summary)}</p></div>` : ''}
+    ${suggestions.map((s,i) => `
+      <div class="review-item" id="review-${i}" style="${s.status!=='pending'?'opacity:0.6':''}">
+        <div class="review-reason">${esc(s.reason)}</div>
+        <div class="review-diff">
+          <div class="review-old">
+            <div class="review-label">Original</div>
+            <div>${esc(s.old)}</div>
+          </div>
+          <div class="review-new">
+            <div class="review-label">Suggested</div>
+            <div>${esc(s.new_)}</div>
+          </div>
+        </div>
+        <div class="review-actions">
+          ${s.status === 'pending' ? `
+            <button class="btn btn-ghost btn-sm" onclick="rejectSuggestion(${idx},${i})">Reject</button>
+            <button class="btn btn-gold btn-sm" onclick="acceptSuggestion(${idx},${i})">Accept</button>
+          ` : `
+            <span class="sidebar-badge ${s.status==='accepted'?'badge-green':'badge-gray'}">${s.status}</span>
+          `}
+        </div>
+      </div>
+    `).join('')}
+    <div style="text-align:center;margin-top:24px;">
+      <button class="btn btn-gold" onclick="applyReview(${idx})">Apply Accepted Changes & Finish</button>
+    </div>
+  `;
+}
+
+function acceptSuggestion(idx, i) {
+  reviewSuggestions[i].status = 'accepted';
+  renderReviewResults(idx, reviewSuggestions, '');
+}
+
+function rejectSuggestion(idx, i) {
+  reviewSuggestions[i].status = 'rejected';
+  renderReviewResults(idx, reviewSuggestions, '');
+}
+
+function applyReview(idx) {
+  const p = getProject();
+  const ch = p.chapters[idx];
+  let content = ch.content;
+
+  // Apply accepted suggestions
+  reviewSuggestions.filter(s => s.status === 'accepted').forEach(s => {
+    content = content.replace(s.old, s.new_);
+  });
+
+  ch.content = content;
+  ch.status = 'draft';
+  ch.notes = [];
+  saveProject();
+  reviewSuggestions = [];
+  navigate('chapter', { chapterIdx: idx });
+}
+
+function cancelReview(idx) {
+  const p = getProject();
+  p.chapters[idx].status = 'draft';
+  saveProject();
+  reviewSuggestions = [];
+  navigate('chapter', { chapterIdx: idx });
+}
+
+// ============================================================
+// FINALIZE CHAPTER (triggers ledger, glossary, voice, summary)
+// ============================================================
+async function finalizeChapter(idx) {
+  showModal('Finalize Chapter?', 'This will mark the chapter as complete and update the continuity ledger, glossary, and voice profile.', [
+    { label: 'Cancel', cls: 'btn-ghost' },
+    { label: 'Finalize', cls: 'btn-gold', fn: () => doFinalizeChapter(idx) }
+  ]);
+}
+
+async function doFinalizeChapter(idx) {
+  const p = getProject();
+  const ch = p.chapters[idx];
+  ch.status = 'final';
+  ch.versions.push({ content: ch.content, timestamp: new Date().toISOString(), label: 'Final version' });
+  saveProject();
+
+  // Show processing overlay
+  const app = document.getElementById('app');
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:100;display:flex;align-items:center;justify-content:center;';
+  overlay.innerHTML = `<div class="card" style="text-align:center;max-width:400px;">
+    <div class="typing-indicator" style="justify-content:center;margin-bottom:12px;"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>
+    <p id="finalize-status" style="color:var(--text2);" class="ui">Updating continuity ledger...</p>
+  </div>`;
+  document.body.appendChild(overlay);
+
+  try {
+    // 1. Generate chapter summary
+    const statusEl = overlay.querySelector('#finalize-status');
+    statusEl.textContent = 'Generating chapter summary...';
+    ch.summary = await callClaude([{ role:'user', content: `Summarize this chapter in 2-3 sentences:\n\n${ch.content.slice(0,8000)}` }], 'Write a brief summary capturing the key points and narrative of this chapter.', 500, null);
+    saveProject();
+
+    // 2. Update continuity ledger
+    statusEl.textContent = 'Updating continuity ledger...';
+    const ledgerPrompt = `Update the continuity ledger with details from Chapter ${ch.number}: "${ch.title}".
+
+Current ledger:
+${p.continuityLedger || '(empty - this is the first chapter)'}
+
+Chapter content:
+${ch.content.slice(0, 8000)}
+
+Track: key facts, terminology, people/brands mentioned, opinions expressed, narrative threads, cross-references. Return the complete updated ledger.`;
+    p.continuityLedger = await callClaude([{ role:'user', content: ledgerPrompt }], 'You maintain a continuity ledger for a book. Update it with new chapter details. Return the complete updated ledger.', CONFIG.maxTokensChat, null);
+    saveProject();
+
+    // 3. Update glossary
+    statusEl.textContent = 'Updating glossary...';
+    const existingTerms = p.glossary.map(g => g.term).join(', ');
+    const glossaryResult = await callClaude([{ role:'user', content: `Extract domain-specific terms from this chapter that should be in a glossary. Existing terms (skip these): ${existingTerms || 'none yet'}.\n\nChapter:\n${ch.content.slice(0,6000)}\n\nReturn ONLY a JSON array: [{"term":"...","definition":"..."}]. If no new terms, return [].` }], 'Extract glossary-worthy terms. Return valid JSON only.', CONFIG.maxTokensChat, null);
+    try {
+      const match = glossaryResult.match(/\[[\s\S]*\]/);
+      if (match) {
+        const newTerms = JSON.parse(match[0]);
+        if (Array.isArray(newTerms)) p.glossary.push(...newTerms);
+      }
+    } catch {}
+    saveProject();
+
+    // 4. Voice profile (after 2 chapters)
+    const finalCount = p.chapters.filter(c => c.status === 'final').length;
+    if (finalCount >= 2 && !p.voiceProfile) {
+      statusEl.textContent = 'Creating voice profile...';
+      const firstTwo = p.chapters.filter(c => c.status === 'final').slice(0, 2);
+      const samples = firstTwo.map(c => c.content.slice(0, 3000)).join('\n\n---\n\n');
+      p.voiceProfile = await callClaude([{ role:'user', content: `Analyze the writing style of these chapter samples and create a Voice Profile document.\n\n${samples}` }],
+        'You are a literary analyst. Create a detailed voice profile covering: sentence structure patterns, vocabulary level, tone, rhythm, use of metaphor, paragraph structure, narrative voice (first/third person, formal/informal), and any distinctive stylistic traits. This profile will be used to maintain consistency.', CONFIG.maxTokensChat, null);
+      saveProject();
+    }
+  } catch(e) {
+    console.error('Finalize error:', e);
+  }
+
+  overlay.remove();
+  navigate('project');
+}
+
+// ============================================================
+// VIEW: GLOSSARY
+// ============================================================
+function renderGlossary(app) {
+  const p = getProject();
+  if (!p) return navigate('home');
+
+  app.innerHTML = `
+    <div class="header">
+      <div class="logo">BOOK <span>WIZARD</span></div>
+      <div class="header-actions ui">
+        <button class="btn btn-ghost btn-sm" onclick="navigate('project')">Dashboard</button>
+      </div>
+    </div>
+    <div class="main">
+      ${renderProjectSidebar(p, 'glossary')}
+      <div class="content-area" style="padding:32px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+          <h2 style="color:var(--gold);">Glossary</h2>
+          <button class="btn btn-gold btn-sm" onclick="addGlossaryTerm()">Add Term</button>
+        </div>
+        ${p.glossary.length ? p.glossary.sort((a,b) => a.term.localeCompare(b.term)).map((g,i) => `
+          <div class="glossary-item">
+            <div class="glossary-term">${esc(g.term)}</div>
+            <div class="glossary-def">${esc(g.definition)}</div>
+            <div class="glossary-actions">
+              <button class="btn btn-ghost btn-sm" onclick="editGlossaryTerm(${i})">Edit</button>
+              <button class="btn btn-ghost btn-sm" onclick="deleteGlossaryTerm(${i})">&times;</button>
+            </div>
+          </div>
+        `).join('') : '<p style="color:var(--text3);">No glossary terms yet. They\'ll be added automatically as you write chapters, or you can add them manually.</p>'}
+      </div>
+    </div>
+  `;
+}
+
+function addGlossaryTerm() {
+  const overlay = document.getElementById('modal-overlay');
+  overlay.innerHTML = `<div class="modal">
+    <h2>Add Glossary Term</h2>
+    <input type="text" id="gloss-term" placeholder="Term" style="margin-bottom:12px;">
+    <textarea id="gloss-def" placeholder="Definition" rows="3" style="margin-bottom:16px;"></textarea>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="hideModal()">Cancel</button>
+      <button class="btn btn-gold" onclick="saveGlossaryTerm()">Add</button>
+    </div>
+  </div>`;
+  overlay.classList.add('show');
+}
+
+function saveGlossaryTerm() {
+  const term = document.getElementById('gloss-term')?.value?.trim();
+  const def = document.getElementById('gloss-def')?.value?.trim();
+  if (!term || !def) return;
+  const p = getProject();
+  p.glossary.push({ term, definition: def });
+  saveProject();
+  hideModal();
+  navigate('glossary');
+}
+
+function editGlossaryTerm(i) {
+  const p = getProject();
+  const g = p.glossary[i];
+  const overlay = document.getElementById('modal-overlay');
+  overlay.innerHTML = `<div class="modal">
+    <h2>Edit Term</h2>
+    <input type="text" id="gloss-term" value="${esc(g.term)}" style="margin-bottom:12px;">
+    <textarea id="gloss-def" rows="3" style="margin-bottom:16px;">${esc(g.definition)}</textarea>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="hideModal()">Cancel</button>
+      <button class="btn btn-gold" onclick="updateGlossaryTerm(${i})">Save</button>
+    </div>
+  </div>`;
+  overlay.classList.add('show');
+}
+
+function updateGlossaryTerm(i) {
+  const p = getProject();
+  p.glossary[i].term = document.getElementById('gloss-term')?.value?.trim() || p.glossary[i].term;
+  p.glossary[i].definition = document.getElementById('gloss-def')?.value?.trim() || p.glossary[i].definition;
+  saveProject();
+  hideModal();
+  navigate('glossary');
+}
+
+function deleteGlossaryTerm(i) {
+  const p = getProject();
+  p.glossary.splice(i, 1);
+  saveProject();
+  navigate('glossary');
+}
+
+// ============================================================
+// VIEW: CONTINUITY LEDGER
+// ============================================================
+function renderLedger(app) {
+  const p = getProject();
+  if (!p) return navigate('home');
+
+  app.innerHTML = `
+    <div class="header">
+      <div class="logo">BOOK <span>WIZARD</span></div>
+      <div class="header-actions ui">
+        <button class="btn btn-ghost btn-sm" onclick="navigate('project')">Dashboard</button>
+        <button class="btn btn-gold btn-sm" onclick="saveLedgerEdit()">Save Changes</button>
+      </div>
+    </div>
+    <div class="main">
+      ${renderProjectSidebar(p, 'ledger')}
+      <div class="content-area" style="padding:32px;">
+        <h2 style="color:var(--gold);margin-bottom:8px;">Continuity Ledger</h2>
+        <p style="color:var(--text3);margin-bottom:24px;" class="ui">This ledger is automatically updated after each chapter is finalized. It tracks facts, characters, terms, and narrative threads to maintain consistency. You can also edit it manually.</p>
+        <textarea id="ledger-editor" style="min-height:500px;line-height:1.8;font-size:15px;">${esc(p.continuityLedger || 'The continuity ledger will be populated automatically after your first chapter is finalized.')}</textarea>
+      </div>
+    </div>
+  `;
+}
+
+function saveLedgerEdit() {
+  const p = getProject();
+  const editor = document.getElementById('ledger-editor');
+  if (editor) {
+    p.continuityLedger = editor.value;
+    saveProject();
+    showModal('Saved', 'Continuity ledger updated.', [{ label: 'OK', cls: 'btn-gold' }]);
+  }
+}
+
+// ============================================================
+// VIEW: VOICE PROFILE
+// ============================================================
+function renderVoiceProfile(app) {
+  const p = getProject();
+  if (!p) return navigate('home');
+
+  app.innerHTML = `
+    <div class="header">
+      <div class="logo">BOOK <span>WIZARD</span></div>
+      <div class="header-actions ui">
+        <button class="btn btn-ghost btn-sm" onclick="navigate('project')">Dashboard</button>
+        ${p.voiceProfile ? '<button class="btn btn-gold btn-sm" onclick="saveVoiceEdit()">Save Changes</button>' : ''}
+      </div>
+    </div>
+    <div class="main">
+      ${renderProjectSidebar(p, 'voiceprofile')}
+      <div class="content-area" style="padding:32px;">
+        <h2 style="color:var(--gold);margin-bottom:8px;">Voice Profile</h2>
+        <p style="color:var(--text3);margin-bottom:24px;" class="ui">
+          ${p.voiceProfile ? 'Your voice profile was generated by analyzing your writing style. It helps the AI match your voice. You can edit it below.' : 'Your voice profile will be automatically created after you finalize at least 2 chapters. It analyzes your writing style so the AI can match your voice.'}
+        </p>
+        ${p.voiceProfile ? `<textarea id="voice-editor" style="min-height:400px;line-height:1.8;font-size:15px;">${esc(p.voiceProfile)}</textarea>` : `
+          <div class="card" style="text-align:center;padding:48px;">
+            <p style="font-size:48px;margin-bottom:16px;">&#9997;</p>
+            <p style="color:var(--text2);">Finalize at least 2 chapters to generate your voice profile.</p>
+            <p style="color:var(--text3);font-size:13px;margin-top:8px;" class="ui">${p.chapters.filter(c=>c.status==='final').length}/2 chapters finalized</p>
+          </div>
+        `}
+      </div>
+    </div>
+  `;
+}
+
+function saveVoiceEdit() {
+  const p = getProject();
+  const editor = document.getElementById('voice-editor');
+  if (editor) {
+    p.voiceProfile = editor.value;
+    saveProject();
+    showModal('Saved', 'Voice profile updated.', [{ label: 'OK', cls: 'btn-gold' }]);
+  }
+}
+
+// ============================================================
+// VIEW: IMAGES
+// ============================================================
+function renderImages(app) {
+  const p = getProject();
+  if (!p) return navigate('home');
+
+  const allImages = [];
+  p.chapters.forEach(ch => {
+    ch.images.forEach(img => {
+      allImages.push({ ...img, chapterNum: ch.number, chapterTitle: ch.title });
+    });
+  });
+
+  app.innerHTML = `
+    <div class="header">
+      <div class="logo">BOOK <span>WIZARD</span></div>
+      <div class="header-actions ui">
+        <button class="btn btn-ghost btn-sm" onclick="navigate('project')">Dashboard</button>
+      </div>
+    </div>
+    <div class="main">
+      ${renderProjectSidebar(p, 'images')}
+      <div class="content-area" style="padding:32px;">
+        <h2 style="color:var(--gold);margin-bottom:24px;">Image Gallery</h2>
+        ${allImages.length ? `
+          <div class="image-grid">
+            ${allImages.map(img => `
+              <div class="image-card" onclick="viewImage('${img.id}')">
+                <img src="${img.data}" alt="${esc(img.caption||'')}">
+                <div class="caption">
+                  <strong>Ch.${img.chapterNum}</strong> ${esc(img.caption||'No caption')}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        ` : `
+          <div class="card" style="text-align:center;padding:48px;">
+            <p style="font-size:48px;margin-bottom:16px;">&#128247;</p>
+            <p style="color:var(--text2);">No images yet. Add images from the chapter editor.</p>
+          </div>
+        `}
+      </div>
+    </div>
+  `;
+}
+
+function renderChapterImages(ch, idx) {
+  if (!ch.images.length) return '';
+  return `<div style="margin-top:24px;">
+    <h3 style="color:var(--gold);margin-bottom:12px;font-size:16px;">Images</h3>
+    <div class="image-grid">
+      ${ch.images.map((img,i) => `
+        <div class="image-card">
+          <img src="${img.data}" alt="${esc(img.caption||'')}">
+          <div class="caption">
+            ${esc(img.caption||'No caption')}
+            <button style="float:right;background:none;border:none;color:var(--red);cursor:pointer;" onclick="event.stopPropagation();removeImage(${idx},${i})">&times;</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  </div>`;
+}
+
+function addImageToChapter(idx) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const data = await compressImage(file);
+      const caption = prompt('Add a caption for this image (optional):') || '';
+      const placement = prompt('Placement notes (e.g., "next to paragraph about Cuban tobacco"):') || '';
+      const p = getProject();
+      p.chapters[idx].images.push({
+        id: Date.now().toString(36),
+        data: data,
+        caption: caption,
+        placement: placement
+      });
+      saveProject();
+      navigate('chapter', { chapterIdx: idx });
+    } catch(err) {
+      showModal('Error', 'Failed to process image: ' + err.message, [{ label: 'OK', cls: 'btn-gold' }]);
+    }
+  };
+  input.click();
+}
+
+function removeImage(idx, imgIdx) {
+  const p = getProject();
+  p.chapters[idx].images.splice(imgIdx, 1);
+  saveProject();
+  navigate('chapter', { chapterIdx: idx });
+}
+
+function viewImage(id) {
+  const p = getProject();
+  let img = null;
+  p.chapters.forEach(ch => { ch.images.forEach(i => { if (i.id === id) img = i; }); });
+  if (!img) return;
+  const overlay = document.getElementById('modal-overlay');
+  overlay.innerHTML = `<div style="max-width:90vw;max-height:90vh;position:relative;">
+    <img src="${img.data}" style="max-width:100%;max-height:80vh;border-radius:var(--radius);">
+    <p style="text-align:center;margin-top:12px;color:var(--text);">${esc(img.caption||'')}</p>
+    ${img.placement ? `<p style="text-align:center;color:var(--text3);font-size:13px;">${esc(img.placement)}</p>` : ''}
+    <button class="btn btn-ghost" style="position:absolute;top:-40px;right:0;" onclick="hideModal()">Close</button>
+  </div>`;
+  overlay.classList.add('show');
+}
+
+// ============================================================
+// VIEW: READ BACK MODE
+// ============================================================
+function renderReadback(app) {
+  const p = getProject();
+  if (!p) return navigate('home');
+
+  const chaptersWithContent = p.chapters.filter(c => c.content);
+  if (!chaptersWithContent.length) {
+    app.innerHTML = `
+      <div class="header">
+        <div class="logo">BOOK <span>WIZARD</span></div>
+        <div class="header-actions ui"><button class="btn btn-ghost btn-sm" onclick="navigate('project')">Back</button></div>
+      </div>
+      <div class="center-screen">
+        <div class="center-box">
+          <p style="font-size:48px;margin-bottom:16px;">&#128214;</p>
+          <h2>Nothing to Read Yet</h2>
+          <p>Write or generate at least one chapter to use Read Back mode.</p>
+          <button class="btn btn-gold" onclick="navigate('project')">Back to Dashboard</button>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  const allContent = chaptersWithContent.map(c => `<h1>Chapter ${c.number}: ${esc(c.title)}</h1>\n${md(c.content)}\n<hr style="border-color:var(--border);margin:48px 0;">`).join('');
+
+  app.innerHTML = `
+    <div class="readback-overlay">
+      <button class="btn btn-ghost readback-close" onclick="navigate('project')">Exit Read Back</button>
+      <div class="readback-content">${allContent}</div>
+    </div>
+  `;
+}
+
+// ============================================================
+// VIEW: EXPORT
+// ============================================================
+function renderExport(app) {
+  const p = getProject();
+  if (!p) return navigate('home');
+
+  app.innerHTML = `
+    <div class="header">
+      <div class="logo">BOOK <span>WIZARD</span></div>
+      <div class="header-actions ui">
+        <button class="btn btn-ghost btn-sm" onclick="navigate('project')">Dashboard</button>
+      </div>
+    </div>
+    <div class="main">
+      ${renderProjectSidebar(p, 'export')}
+      <div class="content-area" style="padding:32px;">
+        <h2 style="color:var(--gold);margin-bottom:8px;">Export Manuscript</h2>
+        <p style="color:var(--text3);margin-bottom:32px;" class="ui">Download your book as a complete manuscript file.</p>
+
+        <div style="display:flex;gap:16px;flex-wrap:wrap;">
+          <div class="card" style="flex:1;min-width:200px;cursor:pointer;text-align:center;" onclick="exportMarkdown()">
+            <p style="font-size:36px;margin-bottom:8px;">&#128196;</p>
+            <h3 style="color:var(--text);margin-bottom:4px;">Markdown</h3>
+            <p style="font-size:13px;color:var(--text3);" class="ui">Best for importing into Word, Google Docs, or other tools</p>
+          </div>
+          <div class="card" style="flex:1;min-width:200px;cursor:pointer;text-align:center;" onclick="exportPlainText()">
+            <p style="font-size:36px;margin-bottom:8px;">&#128221;</p>
+            <h3 style="color:var(--text);margin-bottom:4px;">Plain Text</h3>
+            <p style="font-size:13px;color:var(--text3);" class="ui">Simple text file, universally compatible</p>
+          </div>
+          <div class="card" style="flex:1;min-width:200px;cursor:pointer;text-align:center;" onclick="exportProjectBackup()">
+            <p style="font-size:36px;margin-bottom:8px;">&#128190;</p>
+            <h3 style="color:var(--text);margin-bottom:4px;">Full Backup</h3>
+            <p style="font-size:13px;color:var(--text3);" class="ui">JSON backup of entire project data</p>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:32px;">
+          <h3 style="color:var(--gold);margin-bottom:12px;">Import Backup</h3>
+          <p style="color:var(--text3);font-size:14px;margin-bottom:12px;" class="ui">Restore a project from a backup file.</p>
+          <input type="file" accept=".json" id="import-file" style="display:none;" onchange="importBackup(this)">
+          <button class="btn btn-outline btn-sm" onclick="document.getElementById('import-file').click()">Choose Backup File</button>
+        </div>
+
+        <div class="card" style="margin-top:16px;">
+          <h3 style="color:var(--text);margin-bottom:8px;">Storage Info</h3>
+          <p style="font-size:13px;color:var(--text3);" class="ui">Using approximately ${(new Blob([JSON.stringify(state)]).size / 1024).toFixed(0)} KB of local storage.</p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function exportMarkdown() {
+  const p = getProject();
+  let content = `# ${p.name}\n\n`;
+  content += `---\n\n`;
+
+  p.chapters.forEach(ch => {
+    if (ch.content) {
+      content += `## Chapter ${ch.number}: ${ch.title}\n\n`;
+      content += ch.content + '\n\n';
+      if (ch.images.length) {
+        ch.images.forEach(img => {
+          content += `[Image: ${img.caption || 'Untitled'}${img.placement ? ' - ' + img.placement : ''}]\n\n`;
+        });
+      }
+      content += `---\n\n`;
+    }
+  });
+
+  if (p.glossary.length) {
+    content += `## Glossary\n\n`;
+    p.glossary.sort((a,b) => a.term.localeCompare(b.term)).forEach(g => {
+      content += `**${g.term}**: ${g.definition}\n\n`;
+    });
+  }
+
+  downloadFile(`${p.name.replace(/[^a-zA-Z0-9]/g,'_')}_manuscript.md`, content, 'text/markdown');
+}
+
+function exportPlainText() {
+  const p = getProject();
+  let content = `${p.name}\n${'='.repeat(p.name.length)}\n\n`;
+
+  p.chapters.forEach(ch => {
+    if (ch.content) {
+      content += `Chapter ${ch.number}: ${ch.title}\n${'-'.repeat(40)}\n\n`;
+      content += ch.content + '\n\n\n';
+    }
+  });
+
+  if (p.glossary.length) {
+    content += `Glossary\n${'-'.repeat(40)}\n\n`;
+    p.glossary.sort((a,b) => a.term.localeCompare(b.term)).forEach(g => {
+      content += `${g.term}: ${g.definition}\n\n`;
+    });
+  }
+
+  downloadFile(`${p.name.replace(/[^a-zA-Z0-9]/g,'_')}_manuscript.txt`, content, 'text/plain');
+}
+
+function exportProjectBackup() {
+  const p = getProject();
+  downloadFile(`${p.name.replace(/[^a-zA-Z0-9]/g,'_')}_backup.json`, JSON.stringify(p, null, 2), 'application/json');
+}
+
+function importBackup(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.name || !data.chapters) throw new Error('Invalid backup');
+      data.id = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36)+Math.random().toString(36).slice(2);
+      data.createdAt = new Date().toISOString();
+      state.projects.push(data);
+      state.currentProjectId = data.id;
+      saveState();
+      showModal('Imported!', `"${data.name}" has been restored.`, [{ label: 'Open', cls: 'btn-gold', fn: () => navigate('project') }]);
+    } catch(err) {
+      showModal('Import Failed', 'The file does not appear to be a valid Book Wizard backup: ' + err.message, [{ label: 'OK', cls: 'btn-gold' }]);
+    }
+  };
+  reader.readAsText(file);
+}
+
+function downloadFile(filename, content, mime) {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ============================================================
+// VERSION HISTORY
+// ============================================================
+function showVersions(idx) {
+  const p = getProject();
+  const ch = p.chapters[idx];
+  const overlay = document.getElementById('modal-overlay');
+  overlay.innerHTML = `<div class="modal" style="max-width:600px;">
+    <h2>Version History</h2>
+    <p style="margin-bottom:16px;">Chapter ${ch.number}: ${esc(ch.title)}</p>
+    <div style="max-height:400px;overflow-y:auto;">
+      ${ch.versions.map((v,i) => `
+        <div class="card" style="margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-size:14px;">${esc(v.label || 'Version ' + (i+1))}</div>
+            <div style="font-size:12px;color:var(--text3);" class="ui">${formatDate(v.timestamp)} &middot; ${wordCount(v.content).toLocaleString()} words</div>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="restoreVersion(${idx},${i})">Restore</button>
+        </div>
+      `).join('')}
+    </div>
+    <div class="modal-actions" style="margin-top:16px;">
+      <button class="btn btn-ghost" onclick="hideModal()">Close</button>
+    </div>
+  </div>`;
+  overlay.classList.add('show');
+}
+
+function restoreVersion(idx, versionIdx) {
+  showModal('Restore Version?', 'This will replace the current chapter content with this version. The current content will be saved as a new version.', [
+    { label: 'Cancel', cls: 'btn-ghost' },
+    { label: 'Restore', cls: 'btn-gold', fn: () => {
+      const p = getProject();
+      const ch = p.chapters[idx];
+      ch.versions.push({ content: ch.content, timestamp: new Date().toISOString(), label: 'Before restore' });
+      ch.content = ch.versions[versionIdx].content;
+      saveProject();
+      hideModal();
+      navigate('chapter', { chapterIdx: idx });
+    }}
+  ]);
+}
+
+// ============================================================
+// INIT
+// ============================================================
+render();
+</script>
+</body>
+</html>
