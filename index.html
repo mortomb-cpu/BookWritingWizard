@@ -701,17 +701,26 @@ function renderSetup(app) {
 
 let selectedModel = null;
 
-function selectModel(modelId, el) {
+function selectModel(modelId) {
   selectedModel = modelId;
-  document.querySelectorAll('#model-selector > div').forEach(o => {
-    const isSelected = o.dataset.model === modelId;
-    o.style.borderColor = isSelected ? 'var(--gold)' : 'var(--border)';
-    const radio = o.querySelector('div:first-child');
-    if (radio && radio.style.width === '20px') {
-      radio.style.borderColor = isSelected ? 'var(--gold)' : 'var(--border)';
-      radio.innerHTML = isSelected ? '<div style="width:10px;height:10px;border-radius:50%;background:var(--gold);"></div>' : '';
-    }
-  });
+  if (!state.settings) state.settings = {};
+  state.settings.model = modelId;
+  // Re-render the entire model selector for clean state
+  const container = document.getElementById('model-selector');
+  if (!container) return;
+  container.innerHTML = Object.entries(MODELS).map(([id, m]) => {
+    const sel = id === modelId;
+    return `
+      <div onclick="selectModel('${id}')" data-model="${id}" style="display:flex;align-items:center;gap:12px;background:var(--surface);border:2px solid ${sel ? 'var(--gold)' : 'var(--border)'};border-radius:8px;padding:14px 16px;cursor:pointer;transition:border-color 0.2s;">
+        <div style="width:20px;height:20px;border-radius:50%;border:2px solid ${sel ? 'var(--gold)' : 'var(--border)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          ${sel ? '<div style="width:10px;height:10px;border-radius:50%;background:var(--gold);"></div>' : ''}
+        </div>
+        <div>
+          <div style="font-weight:600;font-size:14px;color:var(--text);">${m.label}</div>
+          <div style="color:var(--muted);font-size:12px;">${m.desc}</div>
+        </div>
+      </div>`;
+  }).join('');
 }
 
 async function saveApiKey() {
