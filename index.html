@@ -970,21 +970,7 @@ function renderPhase(app) {
   }
 
   app.innerHTML = `
-    <div class="header">
-      <div class="logo">BOOK <span>WIZARD</span></div>
-      <div class="steps ui">
-        ${[1,2,3,4].map(n => `
-          <div class="step ${n === phase ? 'active' : ''} ${n < phase || (p.currentPhase > n) ? 'done' : ''}" onclick="${n <= p.currentPhase ? `navigate('phase',{phase:${n}})` : ''}">
-            <div class="step-num">${n}</div>
-            <span>${['','Brainstorm','Research','Plan','Write'][n]}</span>
-          </div>
-          ${n < 4 ? '<span class="step-arrow">&rarr;</span>' : ''}
-        `).join('')}
-      </div>
-      <div class="header-actions ui">
-        <button class="btn btn-ghost btn-sm" onclick="navigate('home')">Home</button>
-      </div>
-    </div>
+    ${phaseHeader(phase)}
     <div class="main">
       <div class="content-area">
         <div class="chat-container">
@@ -1164,21 +1150,7 @@ function renderBrainstorm(app, p) {
   }
 
   app.innerHTML = `
-    <div class="header">
-      <div class="logo">BOOK <span>WIZARD</span></div>
-      <div class="steps ui">
-        ${[1,2,3,4].map(n => `
-          <div class="step ${n === 1 ? 'active' : ''} ${n < 1 ? 'done' : ''}">
-            <div class="step-num">${n}</div>
-            <span>${['','Brainstorm','Research','Plan','Write'][n]}</span>
-          </div>
-          ${n < 4 ? '<span class="step-arrow">&rarr;</span>' : ''}
-        `).join('')}
-      </div>
-      <div class="header-actions ui">
-        <button class="btn btn-ghost btn-sm" onclick="navigate('home')">Home</button>
-      </div>
-    </div>
+    ${phaseHeader(1)}
     <div class="main">
       <div class="content-area">
         <div class="bs-container">
@@ -1314,21 +1286,7 @@ function confirmDeducedSubject(choice, el) {
 
 function renderBrainstormGenerating(app, p) {
   app.innerHTML = `
-    <div class="header">
-      <div class="logo">BOOK <span>WIZARD</span></div>
-      <div class="steps ui">
-        ${[1,2,3,4].map(n => `
-          <div class="step ${n === 1 ? 'active' : ''}">
-            <div class="step-num">${n}</div>
-            <span>${['','Brainstorm','Research','Plan','Write'][n]}</span>
-          </div>
-          ${n < 4 ? '<span class="step-arrow">&rarr;</span>' : ''}
-        `).join('')}
-      </div>
-      <div class="header-actions ui">
-        <button class="btn btn-ghost btn-sm" onclick="navigate('home')">Home</button>
-      </div>
-    </div>
+    ${phaseHeader(1)}
     <div class="main">
       <div class="content-area">
         <div class="bs-container">
@@ -1582,19 +1540,21 @@ let researchData = null;
 let researchLoading = false;
 
 function phaseHeader(activePhase) {
+  const proj = getProject();
+  const showDashboard = proj && proj.currentPhase >= 4;
   return `
     <div class="header">
       <div class="logo">BOOK <span>WIZARD</span></div>
       <div class="steps ui">
         ${[1,2,3,4].map(n => {
-          const p = getProject();
-          return `<div class="step ${n === activePhase ? 'active' : ''} ${p && p.currentPhase > n ? 'done' : ''}" onclick="${p && n <= p.currentPhase ? `navigate('phase',{phase:${n}})` : ''}">
+          return `<div class="step ${n === activePhase ? 'active' : ''} ${proj && proj.currentPhase > n ? 'done' : ''}" onclick="${proj && n <= proj.currentPhase ? `navigate('phase',{phase:${n}})` : ''}">
             <div class="step-num">${n}</div>
             <span>${['','Brainstorm','Research','Plan','Write'][n]}</span>
           </div>${n < 4 ? '<span class="step-arrow">&rarr;</span>' : ''}`;
         }).join('')}
       </div>
       <div class="header-actions ui">
+        ${showDashboard ? `<button class="btn btn-gold btn-sm" onclick="navigate('project')">← Dashboard</button>` : ''}
         <button class="btn btn-ghost btn-sm" onclick="navigate('home')">Home</button>
       </div>
     </div>`;
