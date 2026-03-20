@@ -1271,77 +1271,62 @@ async function generateBrainstormConcept(p) {
     return `${qDef ? qDef.question : key}: ${Array.isArray(val) ? val.join(', ') : val}`;
   }).join('\n');
 
-  const system = `You are an experienced book editor. The author is a first-time writer, expert in their subject but not in book writing. Be concise and confident.
+  const system = `You are an experienced book editor. The author is a first-time writer, expert in their subject but not in book writing.
 
 Book working title: "${p.name}"
 
 Author's answers:
 ${answersText}
 
-Create a SHORT Book Concept Summary using EXACTLY this format (use the bold headers as shown, keep each section to 1-2 sentences max):
+Return ONLY a valid JSON object (no markdown, no code fences, no extra text) with this exact structure:
+{
+  "title": "Suggested book title",
+  "about": "1-2 sentence description of what this book is about",
+  "audience": "1 sentence describing the target reader",
+  "angle": "1 sentence about the author's unique perspective",
+  "tone": "Short description of recommended tone, e.g. Conversational and warm — like a knowledgeable friend sharing over drinks",
+  "chapters": 14,
+  "words": "~60,000",
+  "pillars": ["Pillar 1 name — one line desc", "Pillar 2 name — one line desc", "Pillar 3 name — one line desc", "Pillar 4 name — one line desc", "Pillar 5 name — one line desc"],
+  "features": ["Feature 1", "Feature 2", "Feature 3"]
+}
 
-<DOCUMENT>
-**Suggested Title:** [refined title]
-
-**What This Book Is About:** [1-2 sentences]
-
-**Who It's For:** [1 sentence]
-
-**Your Unique Angle:** [1 sentence about why this author]
-
-**Tone:** [e.g. "Conversational and warm — like a knowledgeable friend sharing over drinks"]
-
-**Scope:** [e.g. "~60,000 words across 14 chapters"]
-
-**Content Pillars:**
-1. [Pillar name] — [one line]
-2. [Pillar name] — [one line]
-3. [Pillar name] — [one line]
-4. [Pillar name] — [one line]
-5. [Pillar name] — [one line]
-
-**Special Features:** [e.g. "Tasting guides, regional maps, glossary of terms"]
-</DOCUMENT>
-
-CRITICAL: Keep the ENTIRE document under 250 words. No fluff, no "notes from your editor", no encouragement paragraphs. Just the facts in the format above.`;
+Be concise. Each value should be 1-2 sentences max. Return ONLY the JSON.`;
 
   try {
     let fullText = '';
     const resultArea = document.getElementById('bs-concept-result');
     const genArea = document.getElementById('bs-generating');
 
-    await callClaude([{ role: 'user', content: 'Please create my Book Concept Document based on my brainstorming answers.' }], system, CONFIG.maxTokensDoc, (chunk, full) => {
+    await callClaude([{ role: 'user', content: 'Generate the book concept JSON.' }], system, CONFIG.maxTokensDoc, (chunk, full) => {
       fullText = full;
-      if (genArea) genArea.style.display = 'none';
-      if (resultArea) {
-        const docMatch = full.match(/<DOCUMENT>([\s\S]*?)<\/DOCUMENT>/);
-        const displayText = docMatch ? docMatch[1].trim() : full.replace(/<DOCUMENT>/g, '').replace(/<\/DOCUMENT>/g, '');
-        resultArea.innerHTML = `
-          <div class="doc-confirm" style="margin-top:16px;">
-            <h3>Your Book Concept Document</h3>
-            <div class="doc-content">${md(displayText)}</div>
-            <div class="doc-actions">
-              <button class="btn btn-ghost" onclick="bsRestart()">Start Over</button>
-              <button class="btn btn-gold" onclick="bsConfirmConcept()">Looks Great — Continue to Research</button>
-            </div>
-          </div>
-        `;
-      }
     });
 
-    // Extract and save document
-    const docMatch = fullText.match(/<DOCUMENT>([\s\S]*?)<\/DOCUMENT>/);
-    if (docMatch) {
-      p.brainstorm.document = docMatch[1].trim();
-    } else {
-      p.brainstorm.document = fullText;
+    if (genArea) genArea.style.display = 'none';
+
+    // Parse JSON from response
+    let concept;
+    try {
+      const jsonStr = fullText.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+      concept = JSON.parse(jsonStr);
+    } catch(e2) {
+      throw new Error('AI returned invalid format. Please try again.');
     }
-    // Also store in messages for compatibility
+
+    // Store concept data
+    p.brainstorm.concept = concept;
+
+    // Build the markdown document for downstream phases
+    const docText = `**Title:** ${concept.title}\n**About:** ${concept.about}\n**Audience:** ${concept.audience}\n**Angle:** ${concept.angle}\n**Tone:** ${concept.tone}\n**Scope:** ${concept.words} across ${concept.chapters} chapters\n**Content Pillars:**\n${concept.pillars.map((p,i) => `${i+1}. ${p}`).join('\n')}\n**Features:** ${concept.features.join(', ')}`;
+    p.brainstorm.document = docText;
     p.brainstorm.messages = [
       { role: 'user', content: 'Brainstorming answers:\n' + answersText },
-      { role: 'assistant', content: fullText }
+      { role: 'assistant', content: docText }
     ];
     saveProject();
+
+    // Render interactive cards
+    renderConceptCards(resultArea, concept);
 
   } catch(e) {
     console.error('Brainstorm generation error:', e);
@@ -1370,6 +1355,126 @@ function bsRestart() {
       navigate('phase', { phase: 1 });
     }}
   ]);
+}
+
+function renderConceptCards(container, concept) {
+  const CONCEPT_FIELDS = [
+    { key: 'title', icon: '📖', label: 'Book Title' },
+    { key: 'about', icon: '💡', label: 'What It\'s About' },
+    { key: 'audience', icon: '👥', label: 'Target Reader' },
+    { key: 'angle', icon: '⭐', label: 'Your Unique Angle' },
+    { key: 'tone', icon: '🎨', label: 'Writing Tone' },
+    { key: 'scope', icon: '📏', label: 'Book Size', computed: true },
+    { key: 'pillars', icon: '🏛️', label: 'Content Pillars', isList: true },
+    { key: 'features', icon: '✨', label: 'Special Features', isList: true }
+  ];
+
+  const getValue = (f) => {
+    if (f.computed && f.key === 'scope') return `${concept.words} across ${concept.chapters} chapters`;
+    return concept[f.key];
+  };
+
+  container.innerHTML = `
+    <div style="margin-top:16px;">
+      <h3 style="color:var(--gold);margin-bottom:4px;">Your Book Concept</h3>
+      <p class="ui" style="color:var(--muted);margin-bottom:20px;font-size:14px;">Here's what I recommend. Tap any card to change it.</p>
+
+      ${CONCEPT_FIELDS.map(f => {
+        const val = getValue(f);
+        const displayVal = f.isList
+          ? (Array.isArray(val) ? val.map(v => `<div style="padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.05);">${esc(v)}</div>`).join('') : esc(val))
+          : esc(val);
+        return `
+          <div class="concept-card" onclick="editConceptField('${f.key}')" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:10px;cursor:pointer;transition:border-color 0.2s;">
+            <div style="display:flex;align-items:flex-start;gap:12px;">
+              <span style="font-size:20px;flex-shrink:0;margin-top:2px;">${f.icon}</span>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:4px;">${f.label}</div>
+                <div style="color:var(--text);font-size:15px;line-height:1.5;">${displayVal}</div>
+              </div>
+              <span style="color:var(--muted);font-size:14px;flex-shrink:0;margin-top:2px;">&#9998;</span>
+            </div>
+          </div>`;
+      }).join('')}
+
+      <div style="display:flex;gap:12px;margin-top:20px;justify-content:space-between;">
+        <button class="btn btn-ghost" onclick="bsRestart()">Start Over</button>
+        <button class="btn btn-gold" onclick="bsConfirmConcept()">Approve & Continue</button>
+      </div>
+    </div>
+  `;
+}
+
+function editConceptField(key) {
+  const p = getProject();
+  const concept = p.brainstorm.concept;
+  if (!concept) return;
+
+  const FIELD_OPTIONS = {
+    tone: [
+      { label: 'Casual & Conversational', desc: 'Like chatting with a friend over drinks' },
+      { label: 'Educational & Clear', desc: 'Structured, informative, easy to follow' },
+      { label: 'Storytelling & Narrative', desc: 'Rich prose with stories and vivid descriptions' },
+      { label: 'Authoritative & Professional', desc: 'Serious, expert-level, reference quality' }
+    ],
+    audience: [
+      { label: 'Complete beginners curious about the subject', desc: '' },
+      { label: 'Enthusiasts who want to deepen their knowledge', desc: '' },
+      { label: 'Both beginners and enthusiasts', desc: '' },
+      { label: 'Professionals and industry insiders', desc: '' }
+    ]
+  };
+
+  const currentVal = key === 'scope' ? `${concept.words} across ${concept.chapters} chapters` :
+    (Array.isArray(concept[key]) ? concept[key].join('\n') : concept[key]);
+  const options = FIELD_OPTIONS[key];
+
+  const labels = { title: 'Book Title', about: 'What It\'s About', audience: 'Target Reader', angle: 'Your Unique Angle', tone: 'Writing Tone', scope: 'Book Size', pillars: 'Content Pillars', features: 'Special Features' };
+
+  let modalBody = `<div style="margin-bottom:12px;color:var(--muted);font-size:14px;">Current: <strong style="color:var(--text);">${esc(Array.isArray(concept[key]) ? concept[key].join(', ') : currentVal)}</strong></div>`;
+
+  if (options) {
+    modalBody += options.map((opt, i) => `
+      <div class="bs-option" onclick="applyConceptOption('${key}', '${opt.label.replace(/'/g, "\\'")}', this)" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:8px;cursor:pointer;">
+        <div style="font-weight:600;">${opt.label}</div>
+        ${opt.desc ? `<div style="color:var(--muted);font-size:13px;">${opt.desc}</div>` : ''}
+      </div>
+    `).join('');
+    modalBody += `<div class="bs-or" style="margin:12px 0;">— or type your own —</div>`;
+  }
+
+  modalBody += `<textarea id="concept-edit-input" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:12px;font-family:inherit;font-size:14px;resize:vertical;min-height:${key === 'pillars' || key === 'features' ? '120px' : '60px'};" placeholder="Type your own...">${esc(currentVal)}</textarea>`;
+
+  showModal(`Edit: ${labels[key] || key}`, modalBody, [
+    { label: 'Cancel', cls: 'btn-ghost' },
+    { label: 'Save', cls: 'btn-gold', fn: () => {
+      const input = document.getElementById('concept-edit-input');
+      const newVal = input?.value?.trim();
+      if (!newVal) return;
+      if (key === 'scope') {
+        const numMatch = newVal.match(/(\d+)/);
+        if (numMatch) concept.chapters = parseInt(numMatch[0]);
+        concept.words = newVal.replace(/across.*$/i, '').trim();
+      } else if (key === 'pillars' || key === 'features') {
+        concept[key] = newVal.split('\n').filter(l => l.trim());
+      } else {
+        concept[key] = newVal;
+      }
+      // Rebuild document
+      const docText = `**Title:** ${concept.title}\n**About:** ${concept.about}\n**Audience:** ${concept.audience}\n**Angle:** ${concept.angle}\n**Tone:** ${concept.tone}\n**Scope:** ${concept.words} across ${concept.chapters} chapters\n**Content Pillars:**\n${concept.pillars.map((p,i) => `${i+1}. ${p}`).join('\n')}\n**Features:** ${concept.features.join(', ')}`;
+      p.brainstorm.document = docText;
+      saveProject();
+      const resultArea = document.getElementById('bs-concept-result');
+      if (resultArea) renderConceptCards(resultArea, concept);
+    }}
+  ]);
+}
+
+function applyConceptOption(key, value, el) {
+  const input = document.getElementById('concept-edit-input');
+  if (input) input.value = value;
+  document.querySelectorAll('.bs-option').forEach(o => o.style.borderColor = 'var(--border)');
+  el.style.borderColor = 'var(--gold)';
 }
 
 function bsConfirmConcept() {
