@@ -3253,21 +3253,53 @@ function renderExport(app) {
         <h2 style="color:var(--gold);margin-bottom:8px;">Export Manuscript</h2>
         <p style="color:var(--text3);margin-bottom:32px;" class="ui">Download your book as a complete manuscript file.</p>
 
+        <h3 style="color:var(--text);margin-bottom:12px;">📐 Trim Size</h3>
+        <div style="display:flex;gap:12px;margin-bottom:24px;" id="trim-selector">
+          <div onclick="selectTrimSize('5x8', this)" class="trim-option" data-trim="5x8" style="flex:1;background:var(--surface);border:2px solid var(--gold);border-radius:8px;padding:14px 16px;cursor:pointer;text-align:center;">
+            <div style="font-weight:700;font-size:16px;color:var(--text);">5" × 8"</div>
+            <div style="font-size:12px;color:var(--muted);">Standard paperback — novels, guides</div>
+          </div>
+          <div onclick="selectTrimSize('6x9', this)" class="trim-option" data-trim="6x9" style="flex:1;background:var(--surface);border:2px solid var(--border);border-radius:8px;padding:14px 16px;cursor:pointer;text-align:center;">
+            <div style="font-weight:700;font-size:16px;color:var(--text);">6" × 9"</div>
+            <div style="font-size:12px;color:var(--muted);">Trade paperback — non-fiction, textbooks</div>
+          </div>
+        </div>
+
+        <h3 style="color:var(--text);margin-bottom:12px;">📖 Book Formats</h3>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:24px;">
+          <div class="card" style="flex:1;min-width:180px;cursor:pointer;text-align:center;" onclick="exportEPUB()">
+            <p style="font-size:36px;margin-bottom:8px;">📱</p>
+            <h3 style="color:var(--gold);margin-bottom:4px;">EPUB</h3>
+            <p style="font-size:13px;color:var(--text3);" class="ui">E-readers (Kindle, Kobo, Apple Books)</p>
+          </div>
+          <div class="card" style="flex:1;min-width:180px;cursor:pointer;text-align:center;" onclick="exportPDF()">
+            <p style="font-size:36px;margin-bottom:8px;">📄</p>
+            <h3 style="color:var(--gold);margin-bottom:4px;">PDF</h3>
+            <p style="font-size:13px;color:var(--text3);" class="ui">Print-ready, universally readable</p>
+          </div>
+          <div class="card" style="flex:1;min-width:180px;cursor:pointer;text-align:center;" onclick="exportDOCX()">
+            <p style="font-size:36px;margin-bottom:8px;">📝</p>
+            <h3 style="color:var(--gold);margin-bottom:4px;">DOCX</h3>
+            <p style="font-size:13px;color:var(--text3);" class="ui">Microsoft Word — ideal for editors</p>
+          </div>
+        </div>
+
+        <h3 style="color:var(--text);margin-bottom:12px;">🔧 Other Formats</h3>
         <div style="display:flex;gap:16px;flex-wrap:wrap;">
-          <div class="card" style="flex:1;min-width:200px;cursor:pointer;text-align:center;" onclick="exportMarkdown()">
+          <div class="card" style="flex:1;min-width:180px;cursor:pointer;text-align:center;" onclick="exportMarkdown()">
             <p style="font-size:36px;margin-bottom:8px;">&#128196;</p>
             <h3 style="color:var(--text);margin-bottom:4px;">Markdown</h3>
-            <p style="font-size:13px;color:var(--text3);" class="ui">Best for importing into Word, Google Docs, or other tools</p>
+            <p style="font-size:13px;color:var(--text3);" class="ui">For Google Docs or other tools</p>
           </div>
-          <div class="card" style="flex:1;min-width:200px;cursor:pointer;text-align:center;" onclick="exportPlainText()">
+          <div class="card" style="flex:1;min-width:180px;cursor:pointer;text-align:center;" onclick="exportPlainText()">
             <p style="font-size:36px;margin-bottom:8px;">&#128221;</p>
             <h3 style="color:var(--text);margin-bottom:4px;">Plain Text</h3>
-            <p style="font-size:13px;color:var(--text3);" class="ui">Simple text file, universally compatible</p>
+            <p style="font-size:13px;color:var(--text3);" class="ui">Simple text, universally compatible</p>
           </div>
-          <div class="card" style="flex:1;min-width:200px;cursor:pointer;text-align:center;" onclick="exportProjectBackup()">
+          <div class="card" style="flex:1;min-width:180px;cursor:pointer;text-align:center;" onclick="exportProjectBackup()">
             <p style="font-size:36px;margin-bottom:8px;">&#128190;</p>
             <h3 style="color:var(--text);margin-bottom:4px;">Full Backup</h3>
-            <p style="font-size:13px;color:var(--text3);" class="ui">JSON backup of entire project data</p>
+            <p style="font-size:13px;color:var(--text3);" class="ui">JSON backup of entire project</p>
           </div>
         </div>
 
@@ -3339,6 +3371,347 @@ function exportPlainText() {
 function exportProjectBackup() {
   const p = getProject();
   downloadFile(`${p.name.replace(/[^a-zA-Z0-9]/g,'_')}_backup.json`, JSON.stringify(p, null, 2), 'application/json');
+}
+
+// ============================================================
+// EPUB EXPORT
+// ============================================================
+let selectedTrimSize = '5x8'; // default
+
+function selectTrimSize(size, el) {
+  selectedTrimSize = size;
+  document.querySelectorAll('#trim-selector .trim-option').forEach(o => {
+    o.style.borderColor = o.dataset.trim === size ? 'var(--gold)' : 'var(--border)';
+  });
+}
+
+async function loadScript(url) {
+  if (document.querySelector(`script[src="${url}"]`)) return;
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = url;
+    s.onload = resolve;
+    s.onerror = () => reject(new Error('Failed to load: ' + url));
+    document.head.appendChild(s);
+  });
+}
+
+function getBookChaptersHTML(p) {
+  return p.chapters.filter(ch => ch.content).map(ch => {
+    // Convert markdown-ish content to basic HTML
+    let html = ch.content
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/\n\n+/g, '</p><p>')
+      .replace(/\n/g, '<br/>');
+    html = '<p>' + html + '</p>';
+    return { number: ch.number, title: ch.title, html };
+  });
+}
+
+async function exportEPUB() {
+  try {
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js');
+  } catch(e) {
+    showModal('Error', 'Could not load the EPUB library. Please check your internet connection.', [{ label: 'OK', cls: 'btn-gold' }]);
+    return;
+  }
+
+  const p = getProject();
+  const chapters = getBookChaptersHTML(p);
+  if (!chapters.length) {
+    showModal('No Content', 'Write at least one chapter before exporting.', [{ label: 'OK', cls: 'btn-gold' }]);
+    return;
+  }
+
+  const zip = new JSZip();
+  const bookId = 'bookwizard-' + p.id;
+  const sanitizedTitle = p.name.replace(/[<>&"']/g, '');
+
+  // mimetype (must be first, uncompressed)
+  zip.file('mimetype', 'application/epub+zip', { compression: 'STORE' });
+
+  // META-INF/container.xml
+  zip.file('META-INF/container.xml', `<?xml version="1.0" encoding="UTF-8"?>
+<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  <rootfiles>
+    <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
+  </rootfiles>
+</container>`);
+
+  // OEBPS/content.opf
+  const manifest = chapters.map((ch, i) => `    <item id="ch${i}" href="ch${i}.xhtml" media-type="application/xhtml+xml"/>`).join('\n');
+  const spine = chapters.map((_, i) => `    <itemref idref="ch${i}"/>`).join('\n');
+
+  zip.file('OEBPS/content.opf', `<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns="http://www.idpf.org/2007/opf" unique-identifier="uid" version="3.0">
+  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <dc:identifier id="uid">${bookId}</dc:identifier>
+    <dc:title>${sanitizedTitle}</dc:title>
+    <dc:creator>Author</dc:creator>
+    <dc:language>en</dc:language>
+    <meta property="dcterms:modified">${new Date().toISOString().split('.')[0]+'Z'}</meta>
+  </metadata>
+  <manifest>
+    <item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
+    <item id="style" href="style.css" media-type="text/css"/>
+${manifest}
+  </manifest>
+  <spine>
+${spine}
+  </spine>
+</package>`);
+
+  // Navigation document
+  const navItems = chapters.map((ch, i) => `      <li><a href="ch${i}.xhtml">Chapter ${ch.number}: ${ch.title.replace(/[<>&]/g, '')}</a></li>`).join('\n');
+  zip.file('OEBPS/nav.xhtml', `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+<head><title>Table of Contents</title></head>
+<body>
+  <nav epub:type="toc">
+    <h1>Table of Contents</h1>
+    <ol>
+${navItems}
+    </ol>
+  </nav>
+</body>
+</html>`);
+
+  // Stylesheet
+  zip.file('OEBPS/style.css', `body { font-family: Georgia, serif; margin: 2em; line-height: 1.8; color: #222; }
+h1 { font-size: 1.6em; margin-bottom: 0.5em; color: #333; }
+p { margin-bottom: 0.8em; text-align: justify; }
+strong { font-weight: bold; }
+em { font-style: italic; }`);
+
+  // Chapter files
+  chapters.forEach((ch, i) => {
+    zip.file(`OEBPS/ch${i}.xhtml`, `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head><title>Chapter ${ch.number}: ${ch.title.replace(/[<>&]/g, '')}</title><link rel="stylesheet" href="style.css"/></head>
+<body>
+  <h1>Chapter ${ch.number}: ${ch.title.replace(/[<>&]/g, '')}</h1>
+  ${ch.html}
+</body>
+</html>`);
+  });
+
+  const blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/epub+zip' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `${p.name.replace(/[^a-zA-Z0-9]/g,'_')}.epub`;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ============================================================
+// PDF EXPORT
+// ============================================================
+async function exportPDF() {
+  try {
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js');
+  } catch(e) {
+    showModal('Error', 'Could not load the PDF library. Please check your internet connection.', [{ label: 'OK', cls: 'btn-gold' }]);
+    return;
+  }
+
+  const p = getProject();
+  const chapters = p.chapters.filter(ch => ch.content);
+  if (!chapters.length) {
+    showModal('No Content', 'Write at least one chapter before exporting.', [{ label: 'OK', cls: 'btn-gold' }]);
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+  // Trim sizes in mm: 5x8 = 127x203mm, 6x9 = 152x229mm
+  const trimSizes = { '5x8': [127, 203], '6x9': [152, 229] };
+  const [trimW, trimH] = trimSizes[selectedTrimSize] || trimSizes['5x8'];
+  const doc = new jsPDF({ unit: 'mm', format: [trimW, trimH] });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = selectedTrimSize === '5x8' ? 18 : 20;
+  const lineH = selectedTrimSize === '5x8' ? 6 : 7;
+  const maxW = pageW - margin * 2;
+  let y = margin;
+
+  function addPage() { doc.addPage(); y = margin; }
+  function checkY(needed) { if (y + needed > pageH - margin) addPage(); }
+
+  // Title page
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(28);
+  const titleLines = doc.splitTextToSize(p.name, maxW);
+  y = pageH / 3;
+  titleLines.forEach(line => { doc.text(line, pageW / 2, y, { align: 'center' }); y += 12; });
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(120);
+  doc.text('Created with Book Wizard', pageW / 2, y + 10, { align: 'center' });
+  doc.text('\u00A9 ' + new Date().getFullYear() + ' All rights reserved', pageW / 2, y + 18, { align: 'center' });
+  doc.setTextColor(0);
+
+  // Table of Contents
+  addPage();
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(20);
+  doc.text('Table of Contents', margin, y);
+  y += 14;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(12);
+  chapters.forEach(ch => {
+    checkY(lineH);
+    doc.text(`Chapter ${ch.number}: ${ch.title}`, margin, y);
+    y += lineH;
+  });
+
+  // Chapters
+  chapters.forEach(ch => {
+    addPage();
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(18);
+    const chTitle = `Chapter ${ch.number}: ${ch.title}`;
+    const chTitleLines = doc.splitTextToSize(chTitle, maxW);
+    chTitleLines.forEach(line => { doc.text(line, margin, y); y += 9; });
+    y += 6;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+    // Split content into paragraphs
+    const paragraphs = ch.content.split(/\n\n+/);
+    paragraphs.forEach(para => {
+      const clean = para.replace(/\*\*(.+?)\*\*/g, '$1').replace(/\*(.+?)\*/g, '$1').trim();
+      if (!clean) return;
+      const lines = doc.splitTextToSize(clean, maxW);
+      lines.forEach(line => {
+        checkY(lineH - 1);
+        doc.text(line, margin, y);
+        y += lineH - 1;
+      });
+      y += 3; // paragraph spacing
+    });
+  });
+
+  // Glossary
+  if (p.glossary.length) {
+    addPage();
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(18);
+    doc.text('Glossary', margin, y);
+    y += 14;
+    doc.setFontSize(11);
+    p.glossary.sort((a,b) => a.term.localeCompare(b.term)).forEach(g => {
+      checkY(lineH * 2);
+      doc.setFont('helvetica', 'bold');
+      doc.text(g.term, margin, y);
+      doc.setFont('helvetica', 'normal');
+      const defLines = doc.splitTextToSize(g.definition, maxW - 5);
+      y += lineH;
+      defLines.forEach(line => { checkY(lineH); doc.text(line, margin + 5, y); y += lineH - 1; });
+      y += 3;
+    });
+  }
+
+  // Page numbers
+  const totalPages = doc.internal.getNumberOfPages();
+  for (let i = 2; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(150);
+    doc.text(`${i}`, pageW / 2, pageH - 10, { align: 'center' });
+    doc.setTextColor(0);
+  }
+
+  doc.save(`${p.name.replace(/[^a-zA-Z0-9]/g,'_')}.pdf`);
+}
+
+// ============================================================
+// DOCX EXPORT
+// ============================================================
+async function exportDOCX() {
+  try {
+    await loadScript('https://unpkg.com/docx@9.1.1/build/index.umd.js');
+  } catch(e) {
+    showModal('Error', 'Could not load the DOCX library. Please check your internet connection.', [{ label: 'OK', cls: 'btn-gold' }]);
+    return;
+  }
+
+  const p = getProject();
+  const chapters = p.chapters.filter(ch => ch.content);
+  if (!chapters.length) {
+    showModal('No Content', 'Write at least one chapter before exporting.', [{ label: 'OK', cls: 'btn-gold' }]);
+    return;
+  }
+
+  const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, PageBreak } = window.docx;
+
+  const children = [];
+
+  // Title page
+  children.push(new Paragraph({ spacing: { before: 4000 }, alignment: AlignmentType.CENTER, children: [new TextRun({ text: p.name, bold: true, size: 56, font: 'Georgia' })] }));
+  children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 400 }, children: [new TextRun({ text: 'Created with Book Wizard', size: 22, color: '888888', font: 'Georgia' })] }));
+  children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 200 }, children: [new TextRun({ text: '\u00A9 ' + new Date().getFullYear() + ' All rights reserved', size: 20, color: '888888', font: 'Georgia' })] }));
+  children.push(new Paragraph({ children: [new PageBreak()] }));
+
+  // Table of Contents header
+  children.push(new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun({ text: 'Table of Contents', bold: true, font: 'Georgia' })] }));
+  chapters.forEach(ch => {
+    children.push(new Paragraph({ spacing: { before: 100 }, children: [new TextRun({ text: `Chapter ${ch.number}: ${ch.title}`, size: 24, font: 'Georgia' })] }));
+  });
+  children.push(new Paragraph({ children: [new PageBreak()] }));
+
+  // Chapters
+  chapters.forEach(ch => {
+    children.push(new Paragraph({ heading: HeadingLevel.HEADING_1, spacing: { before: 200 }, children: [new TextRun({ text: `Chapter ${ch.number}: ${ch.title}`, bold: true, font: 'Georgia' })] }));
+
+    const paragraphs = ch.content.split(/\n\n+/);
+    paragraphs.forEach(para => {
+      const clean = para.trim();
+      if (!clean) return;
+      // Handle bold and italic markdown
+      const runs = [];
+      const parts = clean.split(/(\*\*.*?\*\*|\*.*?\*)/);
+      parts.forEach(part => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          runs.push(new TextRun({ text: part.slice(2, -2), bold: true, size: 24, font: 'Georgia' }));
+        } else if (part.startsWith('*') && part.endsWith('*')) {
+          runs.push(new TextRun({ text: part.slice(1, -1), italics: true, size: 24, font: 'Georgia' }));
+        } else {
+          runs.push(new TextRun({ text: part, size: 24, font: 'Georgia' }));
+        }
+      });
+      children.push(new Paragraph({ spacing: { after: 200, line: 360 }, children: runs }));
+    });
+
+    children.push(new Paragraph({ children: [new PageBreak()] }));
+  });
+
+  // Glossary
+  if (p.glossary.length) {
+    children.push(new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun({ text: 'Glossary', bold: true, font: 'Georgia' })] }));
+    p.glossary.sort((a,b) => a.term.localeCompare(b.term)).forEach(g => {
+      children.push(new Paragraph({ spacing: { before: 100 }, children: [
+        new TextRun({ text: g.term + ': ', bold: true, size: 24, font: 'Georgia' }),
+        new TextRun({ text: g.definition, size: 24, font: 'Georgia' })
+      ]}));
+    });
+  }
+
+  const docFile = new Document({
+    sections: [{ properties: { page: { margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 } } }, children }]
+  });
+
+  const blob = await Packer.toBlob(docFile);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `${p.name.replace(/[^a-zA-Z0-9]/g,'_')}.docx`;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 function importBackup(input) {
