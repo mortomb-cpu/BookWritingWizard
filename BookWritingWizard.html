@@ -596,6 +596,7 @@ function createProject() {
   if (!name) return;
   hideModal();
   subjectDeduction = { loading: false, result: null, error: null };
+  tailoredOptions = null; tailoredLoading = false;
   newProject(name);
   navigate('phase', { phase: 1 });
 }
@@ -604,6 +605,7 @@ function openProject(id) {
   state.currentProjectId = id;
   saveState();
   subjectDeduction = { loading: false, result: null, error: null };
+  tailoredOptions = null; tailoredLoading = false;
   const p = getProject();
   if (!p) return;
   if (p.currentPhase <= 3) navigate('phase', { phase: p.currentPhase });
@@ -858,6 +860,8 @@ const BRAINSTORM_QUESTIONS = [
 
 let chatStreaming = false;
 let subjectDeduction = { loading: false, result: null, error: null };
+let tailoredOptions = null; // AI-generated options tailored to the book subject
+let tailoredLoading = false;
 
 async function deduceSubjectFromTitle(p) {
   if (subjectDeduction.loading || subjectDeduction.result) return;
@@ -880,6 +884,62 @@ async function deduceSubjectFromTitle(p) {
     subjectDeduction.result = null;
   }
   navigate('phase', { phase: 1 }); // re-render with result
+}
+
+async function generateTailoredOptions(subject, bookTitle) {
+  if (tailoredLoading || tailoredOptions) return;
+  tailoredLoading = true;
+  navigate('phase', { phase: 1 }); // show loading on next question
+
+  try {
+    let fullText = '';
+    await callClaude([{
+      role: 'user',
+      content: `The book is titled "${bookTitle}" and is about: ${subject}
+
+Generate tailored multiple-choice options for these 4 questions about this SPECIFIC subject. Return ONLY valid JSON, no markdown fences.
+
+{
+  "experience": [
+    {"icon":"🏆","label":"[profession related to ${bookTitle}]","desc":"[1 line specific to this subject]"},
+    {"icon":"❤️","label":"[hobby/passion related]","desc":"[1 line specific]"},
+    {"icon":"🎓","label":"[study/research related]","desc":"[1 line specific]"},
+    {"icon":"🌍","label":"[life experience related]","desc":"[1 line specific]"}
+  ],
+  "depth": [
+    {"icon":"🔬","label":"World-class expert","desc":"[specific to this subject, e.g. 'Master blender, certified sommelier...']"},
+    {"icon":"📚","label":"Very knowledgeable","desc":"[specific, e.g. 'Years of tasting, visiting distilleries...']"},
+    {"icon":"🌱","label":"Passionate enthusiast","desc":"[specific, e.g. 'Regular enjoyer still discovering new brands...']"},
+    {"icon":"🔄","label":"Expert in some areas, learning others","desc":"[specific]"}
+  ],
+  "reader_goal": [
+    {"icon":"🧠","label":"[understand something specific about this subject]","desc":"[1 line]"},
+    {"icon":"🛠️","label":"[do something practical related to this subject]","desc":"[1 line]"},
+    {"icon":"💬","label":"[talk confidently about this subject]","desc":"[1 line]"},
+    {"icon":"🔥","label":"[fall in love with this subject]","desc":"[1 line]"}
+  ],
+  "stories": [
+    {"icon":"🗺️","label":"[travel/places specific to this subject]","desc":"[e.g. 'Factories, plantations, regions I\\'ve visited']"},
+    {"icon":"👥","label":"[people specific to this subject]","desc":"[e.g. 'Master blenders, farmers, shop owners']"},
+    {"icon":"💡","label":"[discoveries specific to this subject]","desc":"[e.g. 'The first time I tasted a truly aged product']"},
+    {"icon":"📝","label":"Not sure yet — help me find them","desc":"I know I have stories, I just need help pulling them out"}
+  ]
+}
+
+Make every label and description SPECIFIC to the subject of "${bookTitle}". No generic options.`
+    }], 'You generate JSON only. No markdown, no explanation, no code fences. Just the JSON object.', 1500, (chunk, full) => {
+      fullText = full;
+    });
+
+    const jsonStr = fullText.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+    tailoredOptions = JSON.parse(jsonStr);
+    tailoredLoading = false;
+  } catch(e) {
+    console.error('Failed to generate tailored options:', e);
+    tailoredLoading = false;
+    tailoredOptions = null; // Will fall back to generic options
+  }
+  navigate('phase', { phase: 1 });
 }
 
 function renderPhase(app) {
@@ -1045,15 +1105,24 @@ function renderBrainstorm(app, p) {
         </div>`;
     }
   } else {
+    // Use tailored options if available, otherwise fall back to generic
+    const activeOptions = (tailoredOptions && tailoredOptions[q.id]) ? tailoredOptions[q.id] : q.options;
+    const isLoadingOptions = tailoredLoading && !tailoredOptions;
+
     // Standard question rendering
     questionContent = `
       <div class="bs-step">
         <div class="bs-question">${q.question}</div>
         <div class="bs-subtitle">${q.subtitle}</div>
 
-        ${q.options ? `
+        ${isLoadingOptions ? `
+          <div style="display:flex;align-items:center;gap:12px;padding:20px 0;color:var(--muted);">
+            <div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>
+            <span>Tailoring options to your book...</span>
+          </div>
+        ` : (activeOptions ? `
           <div class="bs-options" id="bs-options">
-            ${q.options.map((opt, i) => `
+            ${activeOptions.map((opt, i) => `
               <div class="bs-option" onclick="selectBsOption(${currentQ}, ${i}, this, ${q.multi||false})" data-idx="${i}">
                 <div class="bs-option-icon">${opt.icon}</div>
                 <div class="bs-option-text">
@@ -1064,10 +1133,10 @@ function renderBrainstorm(app, p) {
             `).join('')}
           </div>
           <div class="bs-or">— or type your own —</div>
-        ` : ''}
+        ` : '')}
 
         <div class="bs-custom">
-          <textarea id="bs-custom-input" placeholder="${q.placeholder || 'Type your answer here...'}" rows="${q.options ? 1 : 3}" oninput="autoGrow(this)"></textarea>
+          <textarea id="bs-custom-input" placeholder="${q.placeholder || 'Type your answer here...'}" rows="${activeOptions ? 1 : 3}" oninput="autoGrow(this)"></textarea>
         </div>
 
         <div style="display:flex;gap:12px;margin-top:16px;justify-content:space-between;">
@@ -1140,17 +1209,18 @@ function selectBsOption(qIdx, optIdx, el, multi) {
 
 function bsSubmitAnswer(qIdx) {
   const q = BRAINSTORM_QUESTIONS[qIdx];
+  const activeOptions = (tailoredOptions && tailoredOptions[q.id]) ? tailoredOptions[q.id] : q.options;
   const customInput = document.getElementById('bs-custom-input');
   const customText = customInput?.value?.trim();
 
   let answer = '';
   if (customText) {
     answer = customText;
-  } else if (bsSelectedOptions.length > 0 && q.options) {
+  } else if (bsSelectedOptions.length > 0 && activeOptions) {
     if (q.multi) {
-      answer = bsSelectedOptions.map(i => q.options[i].label).join(', ');
+      answer = bsSelectedOptions.map(i => activeOptions[i].label).join(', ');
     } else {
-      answer = q.options[bsSelectedOptions[0]].label;
+      answer = activeOptions[bsSelectedOptions[0]].label;
     }
   }
 
@@ -1168,6 +1238,11 @@ function bsSubmitAnswer(qIdx) {
   p.brainstorm.currentQ = qIdx + 1;
   bsSelectedOptions = [];
   saveProject();
+
+  // If subject was just answered, generate tailored options for remaining questions
+  if (q.id === 'subject' && !tailoredOptions && !tailoredLoading) {
+    generateTailoredOptions(answer, p.name);
+  }
 
   // If all questions done, generate concept
   if (qIdx + 1 >= BRAINSTORM_QUESTIONS.length) {
@@ -1204,6 +1279,8 @@ function confirmDeducedSubject(choice, el) {
     p.brainstorm.currentQ = 1;
     bsSelectedOptions = [];
     saveProject();
+    // Generate tailored options based on confirmed subject
+    generateTailoredOptions(subjectDeduction.result, p.name);
     navigate('phase', { phase: 1 });
   } else if (choice === false || choice === 'different') {
     // Show the refine area with pre-filled text (or empty for 'different')
