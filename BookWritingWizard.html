@@ -721,81 +721,17 @@ Important: Only produce the <DOCUMENT> when you have enough information. Before 
     title: 'Research & Structure',
     storeKey: 'research',
     maxTokens: CONFIG.maxTokensDoc,
-    getSystem: (p) => `You are a book research and structure specialist. You're helping an author plan the structure of their book.
-
-Book Project: "${p.name}"
-
-Here is the finalized Book Concept Document from the brainstorming phase:
-
---- BOOK CONCEPT ---
-${p.brainstorm.document}
---- END CONCEPT ---
-
-Your job is to:
-1. Ask a few clarifying questions about scope and preferences (1-3 questions)
-2. Then produce a comprehensive Research & Structure Document
-
-The Research & Structure Document should include:
-- Genre analysis and reader expectations for this type of book
-- Recommended number of chapters (with reasoning)
-- Suggested word count per chapter and total word count
-- Content organization strategy
-- Key topics that must be covered
-- Narrative flow recommendations
-- Best practices for this type of non-fiction book
-
-When you produce the final document, wrap it in <DOCUMENT> tags:
-
-<DOCUMENT>
-[Complete Research & Structure Document]
-</DOCUMENT>
-
-Be thorough and practical. This document will guide the entire book structure.`,
-    getInitial: (p) => `Great work on the concept! Now let's figure out the best structure for your book.\n\nI've reviewed your Book Concept Document. Before I put together a full research and structure plan, I have a couple of questions.\n\nFirst — do you have a rough idea of how long you want the book to be? Are you thinking a shorter focused guide (30,000-50,000 words) or a comprehensive reference (70,000-100,000+ words)?`
+    interactive: true, // Uses card-based flow, not chat
+    getSystem: (p) => '', // Not used - see generateResearchStructure
+    getInitial: (p) => ''
   },
   3: {
     title: 'Book Plan',
     storeKey: 'plan',
     maxTokens: CONFIG.maxTokensDoc,
-    getSystem: (p) => `You are a book planning specialist creating a detailed chapter-by-chapter plan.
-
-Book Project: "${p.name}"
-
---- BOOK CONCEPT ---
-${p.brainstorm.document}
---- END CONCEPT ---
-
---- RESEARCH & STRUCTURE ---
-${p.research.document}
---- END RESEARCH ---
-
-Create a detailed chapter-by-chapter book plan. Discuss it with the author, take their feedback, and refine it.
-
-For each chapter include:
-- Chapter number and title
-- Synopsis (2-3 paragraphs describing what the chapter covers)
-- Key topics and points
-- Target word count
-
-Also suggest:
-- Front matter (foreword, introduction, preface as appropriate)
-- Back matter (glossary, appendix, bibliography, index as appropriate)
-
-When the author confirms the plan, produce TWO things:
-
-1. The full plan wrapped in <DOCUMENT> tags
-2. A JSON array of chapters wrapped in <CHAPTERS> tags:
-
-<CHAPTERS>
-[{"number":1,"title":"Chapter Title","synopsis":"Brief synopsis","wordTarget":5000}, ...]
-</CHAPTERS>
-
-<DOCUMENT>
-[The complete detailed book plan]
-</DOCUMENT>
-
-Make the plan detailed enough that a writer (or AI) could write each chapter based on it.`,
-    getInitial: (p) => `Excellent! We now have a solid concept and structure. Let's create your chapter-by-chapter book plan.\n\nBased on everything we've discussed, here's what I'm thinking for the overall structure. Let me lay out a proposed chapter plan, and you can tell me what you'd like to change.\n\nGive me just a moment to put this together...`
+    interactive: true, // Uses card-based flow, not chat
+    getSystem: (p) => '', // Not used - see generateBookPlan
+    getInitial: (p) => ''
   }
 };
 
@@ -953,6 +889,18 @@ function renderPhase(app) {
   // Phase 1 uses the interactive brainstorm flow
   if (phase === 1 && !store.document) {
     renderBrainstorm(app, p);
+    return;
+  }
+
+  // Phase 2 uses interactive research flow
+  if (phase === 2 && cfg.interactive) {
+    renderResearchPhase(app, p);
+    return;
+  }
+
+  // Phase 3 uses interactive plan flow
+  if (phase === 3 && cfg.interactive) {
+    renderPlanPhase(app, p);
     return;
   }
 
@@ -1560,6 +1508,484 @@ function bsConfirmConcept() {
   p.currentPhase = 2;
   saveProject();
   navigate('phase', { phase: 2 });
+}
+
+// ============================================================
+// PHASE 2: RESEARCH & STRUCTURE (Interactive)
+// ============================================================
+let researchData = null;
+let researchLoading = false;
+
+function phaseHeader(activePhase) {
+  return `
+    <div class="header">
+      <div class="logo">BOOK <span>WIZARD</span></div>
+      <div class="steps ui">
+        ${[1,2,3,4].map(n => {
+          const p = getProject();
+          return `<div class="step ${n === activePhase ? 'active' : ''} ${p && p.currentPhase > n ? 'done' : ''}" onclick="${p && n <= p.currentPhase ? `navigate('phase',{phase:${n}})` : ''}">
+            <div class="step-num">${n}</div>
+            <span>${['','Brainstorm','Research','Plan','Write'][n]}</span>
+          </div>${n < 4 ? '<span class="step-arrow">&rarr;</span>' : ''}`;
+        }).join('')}
+      </div>
+      <div class="header-actions ui">
+        <button class="btn btn-ghost btn-sm" onclick="navigate('home')">Home</button>
+      </div>
+    </div>`;
+}
+
+function renderResearchPhase(app, p) {
+  // If already has a confirmed document, show it as cards
+  if (p.research.document && p.research.researchData) {
+    researchData = p.research.researchData;
+    renderResearchCards(app, p);
+    return;
+  }
+  if (p.research.document && !p.research.researchData) {
+    // Old format — show as confirmed doc and allow proceeding
+    renderResearchCards(app, p);
+    return;
+  }
+
+  // Auto-generate if not already loading
+  app.innerHTML = `
+    ${phaseHeader(2)}
+    <div class="main">
+      <div class="content-area">
+        <div class="bs-container">
+          <h2 style="color:var(--gold);margin-bottom:8px;">📚 Researching Your Book Structure</h2>
+          <p class="ui" style="color:var(--muted);margin-bottom:24px;">I'm analyzing your book concept and determining the best structure based on industry standards for this type of book.</p>
+          <div class="bs-generating" id="research-generating">
+            <div class="typing-indicator" style="justify-content:center;"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>
+            <p class="ui" style="text-align:center;color:var(--muted);margin-top:12px;">Analyzing genre, structure, and best practices...</p>
+          </div>
+          <div id="research-result"></div>
+        </div>
+      </div>
+    </div>`;
+
+  if (!researchLoading) generateResearchStructure(p);
+}
+
+async function generateResearchStructure(p) {
+  researchLoading = true;
+  const concept = p.brainstorm.document;
+
+  const system = `You are a senior book editor and publishing consultant. You are the EXPERT — the author trusts you to make all structural decisions.
+
+Book: "${p.name}"
+Concept: ${concept}
+
+Based on your expertise, determine the optimal structure for this book. Make decisive recommendations — don't ask the author, TELL them what works best.
+
+Return ONLY valid JSON (no markdown fences):
+{
+  "genre": "The specific genre/category (e.g. 'Non-fiction / Spirits & Beverages Guide')",
+  "comparable_books": ["Book Title 1 by Author — why it's relevant", "Book Title 2 by Author — why", "Book Title 3 by Author — why"],
+  "total_words": "~65,000",
+  "total_words_reasoning": "1-2 sentence explanation of why this length is ideal",
+  "chapter_count": 14,
+  "chapter_count_reasoning": "1-2 sentence explanation",
+  "words_per_chapter": "4,000-5,000",
+  "structure_type": "The recommended structure approach (e.g. 'Thematic with progressive complexity')",
+  "structure_reasoning": "1-2 sentences on why this structure works",
+  "key_topics": ["Topic 1", "Topic 2", "Topic 3", "Topic 4", "Topic 5", "Topic 6", "Topic 7", "Topic 8"],
+  "front_matter": ["Introduction", "How to Use This Book"],
+  "back_matter": ["Glossary", "Resources", "Index"],
+  "special_elements": ["Element 1 — brief desc", "Element 2 — brief desc", "Element 3 — brief desc"],
+  "target_timeline": "Estimated writing timeline (e.g. '4-6 months at 1 chapter per week')"
+}
+
+Be specific to this exact book subject. Base your decisions on real publishing standards for this genre.`;
+
+  try {
+    let fullText = '';
+    await callClaude([{ role: 'user', content: 'Generate the research and structure JSON.' }], system, CONFIG.maxTokensDoc, (chunk, full) => {
+      fullText = full;
+    });
+
+    const jsonStr = fullText.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+    researchData = JSON.parse(jsonStr);
+
+    p.research.researchData = researchData;
+    saveProject();
+
+    researchLoading = false;
+    const genArea = document.getElementById('research-generating');
+    if (genArea) genArea.style.display = 'none';
+
+    renderResearchCards(document.getElementById('app'), p);
+
+  } catch(e) {
+    console.error('Research generation error:', e);
+    researchLoading = false;
+    const genArea = document.getElementById('research-generating');
+    const resultArea = document.getElementById('research-result');
+    if (genArea) genArea.style.display = 'none';
+    if (resultArea) {
+      resultArea.innerHTML = `
+        <div class="card" style="border-color:var(--red);margin-top:16px;">
+          <p style="color:var(--red);margin-bottom:12px;">Something went wrong: ${esc(e.message)}</p>
+          <button class="btn btn-gold" onclick="researchLoading=false;generateResearchStructure(getProject())">Try Again</button>
+        </div>`;
+    }
+  }
+}
+
+function renderResearchCards(app, p) {
+  const rd = researchData || p.research.researchData;
+  if (!rd) { renderResearchPhase(app, p); return; }
+
+  const RESEARCH_FIELDS = [
+    { key: 'genre', icon: '📂', label: 'Genre & Category' },
+    { key: 'comparable_books', icon: '📚', label: 'Comparable Books', isList: true },
+    { key: 'structure_type', icon: '🏗️', label: 'Book Structure', hasReason: 'structure_reasoning' },
+    { key: 'chapter_count', icon: '📑', label: 'Number of Chapters', hasReason: 'chapter_count_reasoning', suffix: ' chapters' },
+    { key: 'total_words', icon: '📏', label: 'Total Word Count', hasReason: 'total_words_reasoning' },
+    { key: 'words_per_chapter', icon: '✏️', label: 'Words Per Chapter', suffix: ' words per chapter' },
+    { key: 'key_topics', icon: '🎯', label: 'Key Topics to Cover', isList: true },
+    { key: 'front_matter', icon: '📖', label: 'Front Matter', isList: true },
+    { key: 'back_matter', icon: '📋', label: 'Back Matter', isList: true },
+    { key: 'special_elements', icon: '✨', label: 'Special Elements', isList: true },
+    { key: 'target_timeline', icon: '📅', label: 'Suggested Timeline' }
+  ];
+
+  app.innerHTML = `
+    ${phaseHeader(2)}
+    <div class="main">
+      <div class="content-area">
+        <div class="bs-container" style="max-width:700px;margin:0 auto;">
+          <h2 style="color:var(--gold);margin-bottom:4px;">📚 Your Book Structure</h2>
+          <p class="ui" style="color:var(--muted);margin-bottom:20px;font-size:14px;">Based on my analysis of your genre and concept, here's what I recommend. Tap any card to adjust.</p>
+
+          ${RESEARCH_FIELDS.map(f => {
+            const val = rd[f.key];
+            const reason = f.hasReason ? rd[f.hasReason] : null;
+            let displayVal;
+            if (f.isList && Array.isArray(val)) {
+              displayVal = val.map(v => `<div style="padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.05);">• ${esc(v)}</div>`).join('');
+            } else {
+              displayVal = esc(String(val)) + (f.suffix || '');
+            }
+            return `
+              <div class="concept-card" onclick="editResearchField('${f.key}')" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:10px;cursor:pointer;transition:border-color 0.2s;">
+                <div style="display:flex;align-items:flex-start;gap:12px;">
+                  <span style="font-size:20px;flex-shrink:0;margin-top:2px;">${f.icon}</span>
+                  <div style="flex:1;min-width:0;">
+                    <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:4px;">${f.label}</div>
+                    <div style="color:var(--text);font-size:15px;line-height:1.5;">${displayVal}</div>
+                    ${reason ? `<div style="color:var(--muted);font-size:12px;margin-top:6px;font-style:italic;">💡 ${esc(reason)}</div>` : ''}
+                  </div>
+                  <span style="color:var(--muted);font-size:14px;flex-shrink:0;margin-top:2px;">&#9998;</span>
+                </div>
+              </div>`;
+          }).join('')}
+
+          <div style="display:flex;gap:12px;margin-top:20px;justify-content:space-between;">
+            <button class="btn btn-ghost" onclick="researchLoading=false;researchData=null;const pp=getProject();pp.research={messages:[],document:'',researchData:null};saveProject();navigate('phase',{phase:2})">Regenerate</button>
+            <button class="btn btn-gold" onclick="confirmResearch()">Approve & Continue to Plan</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function editResearchField(key) {
+  const p = getProject();
+  const rd = researchData || p.research.researchData;
+  if (!rd) return;
+
+  const labels = { genre:'Genre', comparable_books:'Comparable Books', structure_type:'Structure', chapter_count:'Chapters', total_words:'Word Count', words_per_chapter:'Words/Chapter', key_topics:'Key Topics', front_matter:'Front Matter', back_matter:'Back Matter', special_elements:'Special Elements', target_timeline:'Timeline' };
+  const currentVal = Array.isArray(rd[key]) ? rd[key].join('\n') : String(rd[key]);
+
+  let modalBody = `<div style="margin-bottom:12px;color:var(--muted);font-size:14px;">Current value shown below. Edit or type a new one:</div>`;
+  modalBody += `<textarea id="research-edit-input" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:12px;font-family:inherit;font-size:14px;resize:vertical;min-height:${Array.isArray(rd[key]) ? '120px' : '60px'};">${esc(currentVal)}</textarea>`;
+
+  showModal(`Edit: ${labels[key] || key}`, modalBody, [
+    { label: 'Cancel', cls: 'btn-ghost' },
+    { label: 'Save', cls: 'btn-gold', fn: () => {
+      const input = document.getElementById('research-edit-input');
+      const newVal = input?.value?.trim();
+      if (!newVal) return;
+      if (Array.isArray(rd[key])) {
+        rd[key] = newVal.split('\n').filter(l => l.trim());
+      } else if (key === 'chapter_count') {
+        rd[key] = parseInt(newVal) || rd[key];
+      } else {
+        rd[key] = newVal;
+      }
+      p.research.researchData = rd;
+      researchData = rd;
+      saveProject();
+      renderResearchCards(document.getElementById('app'), p);
+    }}
+  ]);
+}
+
+function confirmResearch() {
+  const p = getProject();
+  const rd = researchData || p.research.researchData;
+  // Build document text for downstream phases
+  const docText = `**Genre:** ${rd.genre}
+**Structure:** ${rd.structure_type} — ${rd.structure_reasoning || ''}
+**Chapters:** ${rd.chapter_count} chapters, ${rd.words_per_chapter} words each
+**Total Words:** ${rd.total_words} — ${rd.total_words_reasoning || ''}
+**Key Topics:** ${rd.key_topics.join(', ')}
+**Front Matter:** ${rd.front_matter.join(', ')}
+**Back Matter:** ${rd.back_matter.join(', ')}
+**Special Elements:** ${(rd.special_elements||[]).join(', ')}
+**Timeline:** ${rd.target_timeline}
+**Comparable Books:** ${rd.comparable_books.join('; ')}`;
+
+  p.research.document = docText;
+  p.research.messages = [{ role: 'assistant', content: docText }];
+  p.currentPhase = 3;
+  saveProject();
+  navigate('phase', { phase: 3 });
+}
+
+// ============================================================
+// PHASE 3: BOOK PLAN (Interactive)
+// ============================================================
+let planData = null;
+let planLoading = false;
+
+function renderPlanPhase(app, p) {
+  // If already has confirmed plan with chapters, show cards
+  if (p.plan.document && p.plan.planData) {
+    planData = p.plan.planData;
+    renderPlanCards(app, p);
+    return;
+  }
+  if (p.plan.document && !p.plan.planData && p.plan.chapters && p.plan.chapters.length > 0) {
+    // Old format
+    planData = { chapters: p.plan.chapters, front_matter: [], back_matter: [] };
+    renderPlanCards(app, p);
+    return;
+  }
+
+  // Auto-generate
+  app.innerHTML = `
+    ${phaseHeader(3)}
+    <div class="main">
+      <div class="content-area">
+        <div class="bs-container">
+          <h2 style="color:var(--gold);margin-bottom:8px;">📝 Building Your Chapter Plan</h2>
+          <p class="ui" style="color:var(--muted);margin-bottom:24px;">I'm creating a detailed chapter-by-chapter plan based on your concept and research. Each chapter will have a clear purpose and flow.</p>
+          <div class="bs-generating" id="plan-generating">
+            <div class="typing-indicator" style="justify-content:center;"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>
+            <p class="ui" style="text-align:center;color:var(--muted);margin-top:12px;">Designing your chapter plan...</p>
+          </div>
+          <div id="plan-result"></div>
+        </div>
+      </div>
+    </div>`;
+
+  if (!planLoading) generateBookPlan(p);
+}
+
+async function generateBookPlan(p) {
+  planLoading = true;
+  const rd = p.research.researchData || {};
+
+  const system = `You are a senior book editor creating a chapter-by-chapter plan. You are the EXPERT.
+
+Book: "${p.name}"
+Concept: ${p.brainstorm.document}
+Structure: ${p.research.document}
+
+Create exactly ${rd.chapter_count || 14} chapters. Return ONLY valid JSON (no markdown fences):
+{
+  "front_matter": [
+    {"title": "Foreword", "description": "1 sentence about what this section covers"},
+    {"title": "Introduction", "description": "1 sentence"}
+  ],
+  "chapters": [
+    {
+      "number": 1,
+      "title": "Chapter title",
+      "synopsis": "2-3 sentences describing what this chapter covers and why it matters",
+      "key_points": ["Point 1", "Point 2", "Point 3"],
+      "wordTarget": 5000
+    }
+  ],
+  "back_matter": [
+    {"title": "Glossary", "description": "1 sentence"}
+  ]
+}
+
+Make every chapter title compelling and specific to this book's subject. Synopsis should be detailed enough that a writer could write the chapter from it. Key points should be concrete subtopics. Word targets should match the research recommendations.`;
+
+  try {
+    let fullText = '';
+    await callClaude([{ role: 'user', content: 'Generate the chapter plan JSON.' }], system, 4000, (chunk, full) => {
+      fullText = full;
+    });
+
+    const jsonStr = fullText.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+    planData = JSON.parse(jsonStr);
+
+    p.plan.planData = planData;
+    p.plan.chapters = planData.chapters;
+    saveProject();
+
+    planLoading = false;
+    renderPlanCards(document.getElementById('app'), p);
+
+  } catch(e) {
+    console.error('Plan generation error:', e);
+    planLoading = false;
+    const genArea = document.getElementById('plan-generating');
+    const resultArea = document.getElementById('plan-result');
+    if (genArea) genArea.style.display = 'none';
+    if (resultArea) {
+      resultArea.innerHTML = `
+        <div class="card" style="border-color:var(--red);margin-top:16px;">
+          <p style="color:var(--red);margin-bottom:12px;">Something went wrong: ${esc(e.message)}</p>
+          <button class="btn btn-gold" onclick="planLoading=false;generateBookPlan(getProject())">Try Again</button>
+        </div>`;
+    }
+  }
+}
+
+function renderPlanCards(app, p) {
+  const pd = planData || p.plan.planData;
+  if (!pd) { renderPlanPhase(app, p); return; }
+
+  const totalWords = (pd.chapters || []).reduce((s, c) => s + (c.wordTarget || 5000), 0);
+
+  app.innerHTML = `
+    ${phaseHeader(3)}
+    <div class="main">
+      <div class="content-area">
+        <div class="bs-container" style="max-width:750px;margin:0 auto;">
+          <h2 style="color:var(--gold);margin-bottom:4px;">📝 Your Book Plan</h2>
+          <p class="ui" style="color:var(--muted);margin-bottom:8px;font-size:14px;">${pd.chapters.length} chapters · ~${totalWords.toLocaleString()} words total. Tap any chapter to edit.</p>
+
+          ${(pd.front_matter || []).length > 0 ? `
+            <div style="margin-bottom:16px;">
+              <div style="font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;">Front Matter</div>
+              ${pd.front_matter.map(fm => `
+                <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:6px;">
+                  <span style="font-weight:600;">${esc(fm.title)}</span>
+                  <span style="color:var(--muted);font-size:13px;"> — ${esc(fm.description)}</span>
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+
+          <div style="font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;">Chapters</div>
+
+          ${pd.chapters.map((ch, i) => `
+            <div class="concept-card" onclick="editPlanChapter(${i})" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:10px;cursor:pointer;transition:border-color 0.2s;">
+              <div style="display:flex;align-items:flex-start;gap:12px;">
+                <div style="background:var(--gold);color:var(--bg);width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0;">${ch.number || i + 1}</div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-weight:600;color:var(--text);font-size:15px;margin-bottom:4px;">${esc(ch.title)}</div>
+                  <div style="color:var(--muted);font-size:13px;line-height:1.5;margin-bottom:6px;">${esc(ch.synopsis)}</div>
+                  ${ch.key_points ? `<div style="display:flex;flex-wrap:wrap;gap:4px;">${ch.key_points.map(kp => `<span style="background:rgba(212,175,55,0.15);color:var(--gold);font-size:11px;padding:2px 8px;border-radius:10px;">${esc(kp)}</span>`).join('')}</div>` : ''}
+                  <div style="color:var(--muted);font-size:12px;margin-top:6px;">~${(ch.wordTarget || 5000).toLocaleString()} words</div>
+                </div>
+                <span style="color:var(--muted);font-size:14px;flex-shrink:0;margin-top:2px;">&#9998;</span>
+              </div>
+            </div>
+          `).join('')}
+
+          ${(pd.back_matter || []).length > 0 ? `
+            <div style="margin-top:16px;">
+              <div style="font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;">Back Matter</div>
+              ${pd.back_matter.map(bm => `
+                <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:6px;">
+                  <span style="font-weight:600;">${esc(bm.title)}</span>
+                  <span style="color:var(--muted);font-size:13px;"> — ${esc(bm.description)}</span>
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+
+          <div style="display:flex;gap:12px;margin-top:24px;justify-content:space-between;">
+            <button class="btn btn-ghost" onclick="planLoading=false;planData=null;const pp=getProject();pp.plan={messages:[],document:'',chapters:[],planData:null};saveProject();navigate('phase',{phase:3})">Regenerate</button>
+            <button class="btn btn-gold" onclick="confirmPlan()">Approve & Start Writing</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function editPlanChapter(idx) {
+  const p = getProject();
+  const pd = planData || p.plan.planData;
+  if (!pd || !pd.chapters[idx]) return;
+  const ch = pd.chapters[idx];
+
+  let modalBody = `
+    <div style="margin-bottom:12px;">
+      <label style="display:block;color:var(--gold);font-size:12px;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Chapter Title</label>
+      <input id="plan-edit-title" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;" value="${esc(ch.title)}">
+    </div>
+    <div style="margin-bottom:12px;">
+      <label style="display:block;color:var(--gold);font-size:12px;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Synopsis</label>
+      <textarea id="plan-edit-synopsis" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;resize:vertical;min-height:80px;">${esc(ch.synopsis)}</textarea>
+    </div>
+    <div style="margin-bottom:12px;">
+      <label style="display:block;color:var(--gold);font-size:12px;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Key Points (one per line)</label>
+      <textarea id="plan-edit-points" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;resize:vertical;min-height:80px;">${esc((ch.key_points || []).join('\n'))}</textarea>
+    </div>
+    <div>
+      <label style="display:block;color:var(--gold);font-size:12px;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Word Target</label>
+      <input id="plan-edit-words" type="number" style="width:120px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;" value="${ch.wordTarget || 5000}">
+    </div>`;
+
+  showModal(`Edit Chapter ${ch.number || idx + 1}`, modalBody, [
+    { label: 'Cancel', cls: 'btn-ghost' },
+    { label: 'Save', cls: 'btn-gold', fn: () => {
+      ch.title = document.getElementById('plan-edit-title')?.value?.trim() || ch.title;
+      ch.synopsis = document.getElementById('plan-edit-synopsis')?.value?.trim() || ch.synopsis;
+      ch.key_points = (document.getElementById('plan-edit-points')?.value || '').split('\n').filter(l => l.trim());
+      ch.wordTarget = parseInt(document.getElementById('plan-edit-words')?.value) || ch.wordTarget;
+      p.plan.planData = pd;
+      p.plan.chapters = pd.chapters;
+      planData = pd;
+      saveProject();
+      renderPlanCards(document.getElementById('app'), p);
+    }}
+  ]);
+}
+
+function confirmPlan() {
+  const p = getProject();
+  const pd = planData || p.plan.planData;
+  if (!pd) return;
+
+  // Build document
+  let docText = `# Book Plan: ${p.name}\n\n`;
+  if (pd.front_matter?.length) {
+    docText += `## Front Matter\n${pd.front_matter.map(f => `- **${f.title}:** ${f.description}`).join('\n')}\n\n`;
+  }
+  docText += `## Chapters\n\n`;
+  pd.chapters.forEach(ch => {
+    docText += `### Chapter ${ch.number}: ${ch.title}\n${ch.synopsis}\n**Key Points:** ${(ch.key_points||[]).join(', ')}\n**Word Target:** ~${(ch.wordTarget||5000).toLocaleString()}\n\n`;
+  });
+  if (pd.back_matter?.length) {
+    docText += `## Back Matter\n${pd.back_matter.map(b => `- **${b.title}:** ${b.description}`).join('\n')}\n`;
+  }
+
+  p.plan.document = docText;
+  p.plan.chapters = pd.chapters;
+  p.plan.planData = pd;
+
+  // Create writing chapters
+  p.chapters = pd.chapters.map(c => ({
+    number: c.number, title: c.title, synopsis: c.synopsis,
+    wordTarget: c.wordTarget || 5000, status: 'not-started', writingMode: null,
+    content: '', notes: [], versions: [], images: [], summary: '',
+    key_points: c.key_points || []
+  }));
+  p.settings.totalWordTarget = p.chapters.reduce((s,c) => s + c.wordTarget, 0);
+  p.currentPhase = 4;
+  saveProject();
+  navigate('project');
 }
 
 function renderMessages(messages, container) {
