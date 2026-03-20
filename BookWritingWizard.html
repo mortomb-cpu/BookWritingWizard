@@ -305,7 +305,7 @@ const DEFAULT_MODEL = 'claude-sonnet-4-5-20250514';
 
 const CONFIG = {
   apiUrl: 'https://api.anthropic.com/v1/messages',
-  get model() { return loadData()?.settings?.model || DEFAULT_MODEL; },
+  get model() { try { const d = JSON.parse(localStorage.getItem('bookwizard_data')); return d?.settings?.model || DEFAULT_MODEL; } catch(e) { return DEFAULT_MODEL; } },
   apiVersion: '2023-06-01',
   maxTokensChat: 4096,
   maxTokensDoc: 8192,
@@ -674,19 +674,19 @@ function renderSetup(app) {
 
         <label style="font-size:13px;color:var(--text2);display:block;margin-bottom:8px;" class="ui">AI Model</label>
         <div id="model-selector" style="display:flex;flex-direction:column;gap:8px;margin-bottom:24px;">
-          ${Object.entries(MODELS).map(([id, m]) => `
-            <div class="bs-option" onclick="selectModel('${id}', this)" data-model="${id}" style="background:var(--surface);border:1px solid ${(state.settings?.model||DEFAULT_MODEL) === id ? 'var(--gold)' : 'var(--border)'};border-radius:8px;padding:12px 16px;cursor:pointer;">
-              <div style="display:flex;align-items:center;gap:10px;">
-                <div style="width:18px;height:18px;border-radius:50%;border:2px solid ${(state.settings?.model||DEFAULT_MODEL) === id ? 'var(--gold)' : 'var(--border)'};display:flex;align-items:center;justify-content:center;">
-                  ${(state.settings?.model||DEFAULT_MODEL) === id ? '<div style="width:10px;height:10px;border-radius:50%;background:var(--gold);"></div>' : ''}
-                </div>
-                <div>
-                  <div style="font-weight:600;font-size:14px;">${m.label}</div>
-                  <div style="color:var(--muted);font-size:12px;">${m.desc}</div>
-                </div>
+          ${Object.entries(MODELS).map(([id, m]) => {
+            const sel = (state.settings?.model||DEFAULT_MODEL) === id;
+            return `
+            <div onclick="selectModel('${id}', this)" data-model="${id}" style="display:flex;align-items:center;gap:12px;background:var(--surface);border:2px solid ${sel ? 'var(--gold)' : 'var(--border)'};border-radius:8px;padding:14px 16px;cursor:pointer;transition:border-color 0.2s;">
+              <div style="width:20px;height:20px;border-radius:50%;border:2px solid ${sel ? 'var(--gold)' : 'var(--border)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                ${sel ? '<div style="width:10px;height:10px;border-radius:50%;background:var(--gold);"></div>' : ''}
               </div>
-            </div>
-          `).join('')}
+              <div>
+                <div style="font-weight:600;font-size:14px;color:var(--text);">${m.label}</div>
+                <div style="color:var(--muted);font-size:12px;">${m.desc}</div>
+              </div>
+            </div>`;
+          }).join('')}
         </div>
 
         <div style="display:flex;gap:12px;justify-content:center;">
@@ -703,11 +703,11 @@ let selectedModel = null;
 
 function selectModel(modelId, el) {
   selectedModel = modelId;
-  document.querySelectorAll('#model-selector .bs-option').forEach(o => {
+  document.querySelectorAll('#model-selector > div').forEach(o => {
     const isSelected = o.dataset.model === modelId;
     o.style.borderColor = isSelected ? 'var(--gold)' : 'var(--border)';
-    const radio = o.querySelector('div > div > div:first-child');
-    if (radio) {
+    const radio = o.querySelector('div:first-child');
+    if (radio && radio.style.width === '20px') {
       radio.style.borderColor = isSelected ? 'var(--gold)' : 'var(--border)';
       radio.innerHTML = isSelected ? '<div style="width:10px;height:10px;border-radius:50%;background:var(--gold);"></div>' : '';
     }
